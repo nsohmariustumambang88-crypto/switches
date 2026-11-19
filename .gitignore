@@ -1,4 +1,5 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# Only source code is tracked. Secrets, build output, dependencies and
+# media assets (served from Cloudinary) stay out of git.
 
 # dependencies
 /node_modules
@@ -12,6 +13,8 @@
 
 # testing
 /coverage
+/playwright-report
+/test-results
 
 # next.js
 /.next/
@@ -20,18 +23,36 @@
 # production
 /build
 
-# misc
-.DS_Store
-*.pem
+# env files — real values live only in .env.local; .env.example is the template
+.env*
+!.env.example
 
-# debug
+# secrets
+*.pem
+*.key
+
+# media assets — catalog images live in Cloudinary (storefront/catalog/…);
+# keep a local copy in public/catalog only to re-run `npm run cloudinary:upload`
+/public/catalog/
+
+# design tooling output (review screenshots, mocks, local config)
+/.impeccable/
+
+# editor / OS / sync clutter
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# logs
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
-
-# env files (can opt-in for committing if needed)
-.env*
 
 # vercel
 .vercel

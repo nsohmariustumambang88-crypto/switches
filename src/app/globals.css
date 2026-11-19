@@ -1,26 +1,229 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Poster world: a grey print ground, black grotesk set huge, a grey "echo"
+ * of the type knocked out behind it, and product shots multiplied onto grey
+ * panels. No accent colour — black is the accent.
+ */
 
 @theme inline {
+  --color-ground: var(--ground);
+  --color-panel: var(--panel);
+  --color-panel-deep: var(--panel-deep);
+  --color-echo-strong: var(--echo-strong);
+  --color-figure: var(--figure);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-echo: var(--echo);
+  --color-line: var(--line);
+  --color-success: var(--success);
+  --color-danger: var(--danger);
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+
+  --radius-sm: 2px;
+  --radius-md: 3px;
+  --radius-lg: var(--radius);
+  --radius-xl: 6px;
+  --radius-2xl: 8px;
+  --radius-3xl: 10px;
+  --radius-4xl: 999px;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+:root {
+  /* Poster palette */
+  --ground: #cacac7;
+  --panel: #b5b5b2; /* grid cards */
+  --panel-deep: #7a7a77; /* poster product field (hero, product detail) */
+  --echo-strong: #6f6f6c; /* grey words that must be read (≥3:1 on ground) */
+  --figure: #52524f; /* poster numerals, mid-grey like the reference's "13" */
+  --surface: #dcdcd9;
+  --surface-2: #e6e6e3;
+  --ink: #111111;
+  --ink-2: #3a3a38;
+  --echo: #8d8d8a;
+  --line: #a2a29f;
+  --success: #1d5a37;
+  --danger: #8a1c12;
+
+  /* shadcn tokens mapped onto the poster palette */
+  --background: var(--ground);
+  --foreground: var(--ink);
+  --card: var(--surface);
+  --card-foreground: var(--ink);
+  --popover: var(--surface-2);
+  --popover-foreground: var(--ink);
+  --primary: var(--ink);
+  --primary-foreground: #f1f1ee;
+  --secondary: var(--surface);
+  --secondary-foreground: var(--ink);
+  --muted: var(--panel);
+  --muted-foreground: #474745;
+  --accent: var(--surface);
+  --accent-foreground: var(--ink);
+  --destructive: var(--danger);
+  --border: var(--line);
+  --input: var(--line);
+  --ring: var(--ink);
+  --radius: 4px;
+
+  --tabbar-h: 4.25rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    @apply font-sans;
+    background: var(--ground);
+    -webkit-tap-highlight-color: transparent;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    scrollbar-color: var(--ink-2) var(--ground);
+  }
+  body {
+    @apply bg-ground text-ink;
+    caret-color: var(--ink);
+    font-variant-numeric: lining-nums;
+  }
+  ::selection {
+    background: var(--ink);
+    color: var(--ground);
+  }
+  :focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 2px;
+  }
+  a {
+    text-underline-offset: 0.2em;
+    text-decoration-thickness: 1px;
+  }
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--ground);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--ink-2);
+    border: 3px solid var(--ground);
+    border-radius: 999px;
+  }
+  input[type="search"]::-webkit-search-cancel-button {
+    display: none;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Heavy poster grotesk. Tracking floor -0.04em. */
+@utility font-display {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-stretch: 100%;
+  letter-spacing: -0.04em;
+  line-height: 0.84;
+}
+
+/* Condensed variant for stacked lockups. */
+@utility font-display-narrow {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-stretch: 78%;
+  letter-spacing: -0.03em;
+  line-height: 0.86;
+}
+
+/* Small caps label used on spec strips and meta lines. */
+@utility label-caps {
+  font-size: 0.6875rem;
+  line-height: 1;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Product shots on white get multiplied onto the grey panel. */
+@utility multiply {
+  mix-blend-mode: multiply;
+}
+
+/* Echo: the grey copy of the type, offset up-left like an offset-print miss.
+   --echo-p runs 0 → 1 (GSAP animates it on entrance). */
+.echo-layer {
+  --echo-p: 1;
+  transform: translate(
+    calc(var(--echo-p) * var(--echo-x, -0.055em)),
+    calc(var(--echo-p) * var(--echo-y, -0.04em))
+  );
+}
+
+/* Splash + age gate visibility set by the inline head script before paint. */
+html[data-splash="seen"] [data-splash-root] {
+  display: none;
+}
+
+/* Bottom tab bar clearance on phones. */
+.pb-tabbar {
+  padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px) + 1.5rem);
+}
+@media (min-width: 768px) {
+  .pb-tabbar {
+    padding-bottom: 0;
+  }
+}
+
+/* Reduced motion: no CSS motion at all (GSAP checks the same query itself).
+   Using `none` rather than a tiny duration keeps Base UI from seeing both a
+   transition and an animation on the same panel. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
 }
