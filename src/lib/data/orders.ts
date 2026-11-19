@@ -26,6 +26,7 @@ export const orderInput = z.object({
     city: z.string().trim().min(1),
     state: z.string().trim().min(2).max(2),
     zip: z.string().trim().min(5).max(10),
+    phone: z.string().trim().max(30).optional(),
   }),
   fflDealerId: z.string().optional(),
   payment: z.enum(["card", "ach"]),

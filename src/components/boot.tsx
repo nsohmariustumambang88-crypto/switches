@@ -3,6 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useServerInsertedHTML } from "next/navigation";
 import { useStore } from "@/lib/store";
+import { hasSupabase } from "@/lib/supabase/config";
 import { readStorage, useBrowserValue } from "@/lib/use-browser-value";
 import { gsap, useGSAP, prefersReducedMotion } from "@/lib/gsap";
 import { site } from "@/config/site";
@@ -40,12 +41,45 @@ export function StoreHydrator() {
   return null;
 }
 
+const VIEWER_KEY = "viewer-cache";
+const VIEWER_TTL = 10 * 60 * 1000;
+
+/** Forget the cached viewer (call after sign-in, sign-up or sign-out). */
+export function clearViewerCache() {
+  try {
+    sessionStorage.removeItem(VIEWER_KEY);
+  } catch {}
+}
+
+/** @supabase/ssr stores the session in readable `sb-<ref>-auth-token` cookies. */
+const hasAuthCookie = () => /(?:^|;\s*)sb-[^=]+-auth-token/.test(document.cookie);
+
 /**
- * Loads the signed-in viewer from GET /api/auth/me and, when signed in,
- * merges server favorites (GET /api/wishlist) with this browser's list.
+ * Resolves the signed-in viewer with as little server work as possible:
+ * - Supabase not configured → no request.
+ * - No session cookie (most visitors) → signed out, no request.
+ * - Session cookie → GET /api/auth/me, cached in this tab for 10 minutes;
+ *   on a fresh lookup, server favorites (GET /api/wishlist) merge in.
  */
 export function ViewerSync() {
   useEffect(() => {
+    const store = useStore.getState();
+    if (!hasSupabase) {
+      store.setViewer(null, false);
+      return;
+    }
+    if (!hasAuthCookie()) {
+      store.setViewer(null, true);
+      return;
+    }
+    try {
+      const cached = JSON.parse(sessionStorage.getItem(VIEWER_KEY) ?? "null");
+      if (cached && Date.now() - cached.at < VIEWER_TTL) {
+        store.setViewer(cached.viewer, true);
+        return;
+      }
+    } catch {}
+
     let cancelled = false;
     (async () => {
       try {
@@ -53,6 +87,9 @@ export function ViewerSync() {
         const { configured, viewer } = await res.json();
         if (cancelled) return;
         useStore.getState().setViewer(viewer ?? null, !!configured);
+        try {
+          sessionStorage.setItem(VIEWER_KEY, JSON.stringify({ at: Date.now(), viewer: viewer ?? null }));
+        } catch {}
         if (viewer) {
           const w = await fetch("/api/wishlist", { cache: "no-store" });
           if (w.ok && !cancelled) {

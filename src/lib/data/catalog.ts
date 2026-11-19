@@ -76,7 +76,7 @@ type Catalog = { categories: Category[]; products: Product[]; source: "supabase"
 export async function getCatalog(): Promise<Catalog> {
   "use cache";
   cacheTag(CATALOG_TAG);
-  cacheLife("minutes");
+  cacheLife("max"); // invalidated on admin writes via revalidateTag
 
   if (!hasSupabase) {
     return { categories: builtin.categories, products: builtin.products, source: "builtin" };

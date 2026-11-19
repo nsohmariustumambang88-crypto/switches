@@ -2,11 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Check, Store, Truck } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Check, RotateCcw, Store, Truck } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { getOrder, type Order } from "@/lib/catalog";
+import { getOrder, type Order, type Product } from "@/lib/catalog";
 import { formatDay, formatDayTime, money } from "@/lib/format";
-import { useProductLookup, useStore } from "@/lib/store";
+import { lookupProduct, useProductLookup, useStore } from "@/lib/store";
+import { Button } from "@/components/ui/button";
 import { gsap, useGSAP, prefersReducedMotion } from "@/lib/gsap";
 import { PageBar } from "@/components/page-bar";
 import { EchoType } from "@/components/echo-type";
@@ -14,6 +17,7 @@ import { EmptyState } from "@/components/empty-state";
 import { StatusChip, Thumb, itemView, orderHasFirearm, orderTotal, statusLabel } from "../order-shared";
 
 export function TrackView({ id }: { id: string }) {
+  const router = useRouter();
   const hydrated = useStore((s) => s.hydrated);
   const viewer = useStore((s) => s.viewer);
   const mine = useStore((s) => s.orders.find((o) => o.id === id));
@@ -71,6 +75,31 @@ export function TrackView({ id }: { id: string }) {
   const mineOrder = !getOrder(id);
   const cancelled = order.status === "cancelled";
 
+  // Re-add every line to the cart. Products this browser hasn't seen are
+  // fetched once via GET /api/products?slugs=… (only when needed).
+  const buyAgain = async () => {
+    const missing = order.items.map((i) => i.slug).filter((s) => !lookupProduct(s));
+    if (missing.length) {
+      try {
+        const r = await fetch(`/api/products?slugs=${encodeURIComponent(missing.join(","))}`);
+        const d = (await r.json()) as { products: Product[] };
+        d.products.forEach((p) => useStore.getState().remember(p));
+      } catch {}
+    }
+    let added = 0;
+    for (const i of order.items) {
+      const p = lookupProduct(i.slug);
+      if (p && p.stock !== 0) {
+        useStore.getState().add(p, i.rounds, i.qty);
+        added++;
+      }
+    }
+    if (added) {
+      toast.success(`Added ${added} item${added === 1 ? "" : "s"} to your cart`);
+      router.push("/cart");
+    } else toast.error("These items are no longer available.");
+  };
+
   return (
     <>
       <PageBar title="Track Order" back="/orders" />
@@ -79,6 +108,9 @@ export function TrackView({ id }: { id: string }) {
           <EchoType text={`#${order.id}`} as="h1" className="font-display text-[clamp(3.5rem,17vw,9rem)]" />
           <div className="mt-4 flex flex-wrap items-center gap-3">
             <StatusChip status={order.status} ffl={ffl} />
+            <Button variant="outline" size="sm" onClick={buyAgain}>
+              <RotateCcw /> Buy again
+            </Button>
             <span className="text-sm text-ink-2">
               {formatDay(order.date)} · {order.items.length} item{order.items.length === 1 ? "" : "s"} · {money(orderTotal(order, find))}
             </span>

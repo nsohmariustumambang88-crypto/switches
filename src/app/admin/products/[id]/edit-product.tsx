@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, ArrowUpRight } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, Copy } from "lucide-react";
 import type { Product } from "@/lib/catalog";
 import { useAdmin } from "@/components/admin/use-admin";
 import { AdminTitle, Loading, Notice } from "@/components/admin/admin-ui";
@@ -22,9 +22,16 @@ export function EditProduct({ id }: { id: string }) {
           <AdminTitle
             title={data.product.name}
             actions={
-              <Link href={`/product/${data.product.slug}`} target="_blank" className="inline-flex items-center gap-1 text-sm font-bold hover:underline">
-                View on store <ArrowUpRight className="size-4" />
-              </Link>
+              <>
+                {!data.demo && (
+                  <Link href={`/admin/products/new?from=${encodeURIComponent(data.product.id ?? "")}`} className="inline-flex items-center gap-1 text-sm font-bold hover:underline">
+                    <Copy className="size-4" /> Duplicate
+                  </Link>
+                )}
+                <Link href={`/product/${data.product.slug}`} target="_blank" className="inline-flex items-center gap-1 text-sm font-bold hover:underline">
+                  View on store <ArrowUpRight className="size-4" />
+                </Link>
+              </>
             }
           />
           <ProductForm key={data.product.id} product={data.product} demo={data.demo} />

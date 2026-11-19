@@ -59,7 +59,7 @@ export function DesktopNav({ links }: { links: React.ReactNode }) {
         <nav aria-label="Departments" className="hidden lg:block">
           {links}
         </nav>
-        <SearchField size="sm" className="ml-auto w-full max-w-xs" placeholder="Search the store" />
+        <SearchField size="sm" className="ml-auto w-full max-w-xs" placeholder="Search the store" panelClassName="left-auto w-[26rem]" />
         <div className="flex items-center gap-0.5">
           <Link href="/favorites" aria-label="Favorites" className={iconLink}>
             <Heart className="size-5" strokeWidth={1.75} />

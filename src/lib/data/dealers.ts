@@ -1,7 +1,7 @@
 import { cacheLife, cacheTag } from "next/cache";
 import { hasSupabase } from "@/lib/supabase/config";
 import { publicClient } from "@/lib/supabase/clients";
-import { demoDealers, type Dealer } from "@/lib/catalog";
+import { demoDealers, sortDealersByZip, type Dealer } from "@/lib/catalog";
 
 export const DEALERS_TAG = "dealers";
 
@@ -39,7 +39,7 @@ export function rowToDealer(r: DealerRow): Dealer {
 export async function getDealers(): Promise<Dealer[]> {
   "use cache";
   cacheTag(DEALERS_TAG);
-  cacheLife("minutes");
+  cacheLife("max"); // invalidated on admin writes via revalidateTag
   if (!hasSupabase) return demoDealers;
   try {
     const { data, error } = await publicClient().from("ffl_dealers").select("*").eq("active", true).order("name");
@@ -53,12 +53,5 @@ export async function getDealers(): Promise<Dealer[]> {
 
 /** Dealers ordered by ZIP proximity (shared leading digits) — replace with a geo lookup later. */
 export async function findDealers(zip?: string) {
-  const list = await getDealers();
-  if (!zip) return list;
-  const score = (z: string) => {
-    let i = 0;
-    while (i < Math.min(z.length, zip.length) && z[i] === zip[i]) i++;
-    return i;
-  };
-  return [...list].sort((a, b) => score(b.zip) - score(a.zip));
+  return sortDealersByZip(await getDealers(), zip);
 }

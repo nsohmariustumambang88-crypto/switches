@@ -25,7 +25,7 @@ export const defaultSettings: StoreSettings = {
 export async function getSettings(): Promise<StoreSettings> {
   "use cache";
   cacheTag(SETTINGS_TAG);
-  cacheLife("minutes");
+  cacheLife("max"); // invalidated on admin writes via revalidateTag
   if (!hasSupabase) return defaultSettings;
   try {
     const { data, error } = await publicClient().from("settings").select("key, value");

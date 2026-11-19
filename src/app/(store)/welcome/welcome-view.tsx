@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { site } from "@/config/site";
 import { getProduct } from "@/lib/catalog";
 import { useStore } from "@/lib/store";
+import { clearViewerCache } from "@/components/boot";
 import { Checkbox } from "@/components/ui/checkbox";
 import { gsap, useGSAP, prefersReducedMotion } from "@/lib/gsap";
 import { EchoType } from "@/components/echo-type";
@@ -31,6 +32,8 @@ const slides = ["glock-19-gen5-fde", "hornady-critical-defense-9mm", "rare-breed
 /** Welcome / onboarding (kit screen 2). */
 export function WelcomeView() {
   const router = useRouter();
+  // Pre-fill from this device's last checkout (local only).
+  const known = useStore((s) => s.savedCheckout);
   const [index, setIndex] = useState(0);
   const [mode, setMode] = useState<null | "create" | "signin">(null);
   const stage = useRef<HTMLDivElement>(null);
@@ -95,6 +98,7 @@ export function WelcomeView() {
         toast.success("Check your email", { description: "Confirm your address to finish creating the account." });
         return;
       }
+      clearViewerCache();
       useStore.getState().setViewer(data.viewer, true);
       setMode(null);
       toast.success(mode === "create" ? "Account created" : "Signed in");
@@ -171,12 +175,12 @@ export function WelcomeView() {
             {mode === "create" && (
               <div>
                 <Label htmlFor="w-name" className="mb-1.5 block text-xs font-bold text-ink-2">Full name</Label>
-                <Input id="w-name" name="name" autoComplete="name" required className="h-12 rounded-lg border-transparent bg-surface px-3.5 text-[0.9375rem] focus-visible:border-ink focus-visible:ring-0" />
+                <Input id="w-name" name="name" autoComplete="name" required defaultValue={known?.name} className="h-12 rounded-lg border-transparent bg-surface px-3.5 text-[0.9375rem] focus-visible:border-ink focus-visible:ring-0" />
               </div>
             )}
             <div>
               <Label htmlFor="w-email" className="mb-1.5 block text-xs font-bold text-ink-2">Email</Label>
-              <Input id="w-email" name="email" type="email" autoComplete="email" required className="h-12 rounded-lg border-transparent bg-surface px-3.5 text-[0.9375rem] focus-visible:border-ink focus-visible:ring-0" />
+              <Input id="w-email" name="email" type="email" inputMode="email" autoComplete="email" required defaultValue={known?.email} className="h-12 rounded-lg border-transparent bg-surface px-3.5 text-[0.9375rem] focus-visible:border-ink focus-visible:ring-0" />
             </div>
             <div>
               <Label htmlFor="w-pass" className="mb-1.5 block text-xs font-bold text-ink-2">Password</Label>

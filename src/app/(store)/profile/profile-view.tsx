@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { site } from "@/config/site";
 import { useStore } from "@/lib/store";
+import { clearViewerCache } from "@/components/boot";
 import { PageBar } from "@/components/page-bar";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
@@ -42,6 +43,7 @@ export function ProfileView() {
   // POST /api/auth/sign-out
   const signOut = async () => {
     await fetch("/api/auth/sign-out", { method: "POST" }).catch(() => {});
+    clearViewerCache();
     useStore.getState().setViewer(null, useStore.getState().backend);
     toast("Signed out");
     router.refresh();

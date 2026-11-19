@@ -494,7 +494,7 @@ export type Order = {
   subtotal?: number;
   shipping?: number;
   total?: number;
-  billing?: { name: string; line1: string; city: string; state: string; zip: string };
+  billing?: { name: string; line1: string; city: string; state: string; zip: string; phone?: string };
   payment?: "card" | "ach";
 };
 
@@ -521,6 +521,19 @@ export const demoDealers: Dealer[] = [
 
 export function dealerAddress(d: Pick<Dealer, "address" | "city" | "state" | "zip">) {
   return `${d.address}, ${d.city}, ${d.state} ${d.zip}`;
+}
+
+/** Nearest-ZIP-first ordering (shared leading digits). Runs in the browser, so
+ *  the dealer list can be one static, CDN-cached response. */
+export function sortDealersByZip<T extends Pick<Dealer, "zip">>(list: T[], zip?: string): T[] {
+  const z = (zip ?? "").replace(/\D/g, "").slice(0, 5);
+  if (!z) return list;
+  const score = (d: string) => {
+    let i = 0;
+    while (i < Math.min(d.length, z.length) && d[i] === z[i]) i++;
+    return i;
+  };
+  return [...list].sort((a, b) => score(b.zip) - score(a.zip));
 }
 
 export const demoOrders: Order[] = [

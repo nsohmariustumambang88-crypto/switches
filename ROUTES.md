@@ -21,13 +21,13 @@ Images are served from Cloudinary (the account set in `.env.local`, folder `stor
 | `/shop/[category]` (`all`, `handguns`, `ammunition`, `triggers`, `parts`) | `shop/[category]/page.tsx` → `listing.tsx` | `getCategories`, `getCategory`, `getProducts` | filtering/sorting runs client-side; search arrives as `?q=`, type chip as `?type=` |
 | `/product/[slug]` | `product/[slug]/page.tsx`, `product-buy.tsx` | `getProduct`, `getCategory`, `getRelated` | `POST/DELETE /api/wishlist` (signed in, via the heart) |
 | `/cart` | `cart/cart-view.tsx` | — | local store only |
-| `/checkout` | `checkout/checkout-view.tsx` | — | `GET /api/ffl-dealers?zip=`, `POST /api/orders` (local fallback on 503) |
+| `/checkout` | `checkout/checkout-view.tsx` | — | `GET /api/ffl-dealers` (static, sorted locally), `POST /api/orders` (local fallback on 503); pre-fills from this device's last checkout |
 | `/orders` | `orders/orders-view.tsx` | — | `GET /api/orders` (signed in) |
-| `/orders/[id]` | `orders/[id]/track-view.tsx` | — | `GET /api/orders/:id` (signed in) |
+| `/orders/[id]` | `orders/[id]/track-view.tsx` | — | `GET /api/orders/:id` (signed in); "Buy again" may call `GET /api/products?slugs=` |
 | `/favorites` | `favorites/favorites-view.tsx` | — | `GET /api/products?slugs=` for unseen favorites |
 | `/profile` | `profile/profile-view.tsx` | — | `POST /api/auth/sign-out`; links to `/admin` for admins |
 
-Every page also calls `GET /api/auth/me` once on load and, when signed in, `GET /api/wishlist` (`components/boot.tsx → ViewerSync`).
+Every page runs `ViewerSync` (`components/boot.tsx`):
 
 **Shared chrome:** `(store)/layout.tsx` contains the splash, the 21+ age gate, the desktop nav, the footer and the phone tab bar.
 
@@ -35,7 +35,7 @@ Every page also calls `GET /api/auth/me` once on load and, when signed in, `GET 
 
 ## 2. Admin backend — `src/app/admin/`
 
-The proxy (`src/proxy.ts`) redirects signed-out visitors to `/welcome?next=/admin`. The shell (`components/admin/admin-shell.tsx`) shows a 403 page to non-admins. Every `/api/admin/*` handler re-checks the role server-side.
+The proxy (`src/proxy.ts`, matching `/admin/*` only, with no network calls) redirects visitors without a session cookie to `/welcome?next=/admin`. The shell (`components/admin/admin-shell.tsx`) shows a 403 page to non-admins. Every `/api/admin/*` handler re-checks the role server-side.
 
 | Route | File | API |
 | --- | --- | --- |
@@ -60,7 +60,7 @@ The proxy (`src/proxy.ts`) redirects signed-out visitors to `/welcome?next=/admi
 | GET | `/api/categories` | — | — | `{ categories[] }` with types and counts |
 | GET | `/api/products` | — | `category, type, q, brand=a,b, caliber=, min, max, sort, slugs=` | `{ count, products[] }` |
 | GET | `/api/products/:slug` | — | — | `{ product, related[] }` · 404 |
-| GET | `/api/ffl-dealers` | — | `zip` | `{ sample, dealers[] }`, nearest ZIP first |
+| GET | `/api/ffl-dealers` | — | — | `{ sample, dealers[] }`. Static and CDN-cached; the browser sorts by ZIP with `sortDealersByZip` |
 | GET | `/api/settings` | — | — | store name, contacts, shipping rule, preview flag |
 | POST | `/api/orders` | optional session | `{ email, items[{slug,qty,rounds?}], billing{name,line1,city,state,zip}, fflDealerId?, payment:"card"\|"ach", attested:true }` | `201 { order }` · 400/409 with message · 503 demo |
 | GET | `/api/orders` | session | — | `{ orders[] }` (own) |
@@ -106,7 +106,7 @@ Catalog, dealer and settings writes call `revalidateTag(…, { expire: 0 })`, so
 
 | File | Functions | Used by |
 | --- | --- | --- |
-| `data/catalog.ts` | `getCatalog` (`"use cache"`, tag `catalog`), `getCategories`, `getCategory`, `getProducts`, `getProduct`, `getTrending`, `getRelated`, `queryProducts`, `rowToProduct` | store pages, `/api/products*`, `/api/categories`, `/api/health` |
+| `data/catalog.ts` | `getCatalog` (`"use cache"`, `cacheLife("max")`, tag `catalog`), `getCategories`, `getCategory`, `getProducts`, `getProduct`, `getTrending`, `getRelated`, `queryProducts`, `rowToProduct` | store pages, `/api/products*`, `/api/categories`, `/api/health` |
 | `data/dealers.ts` | `getDealers` (cached, tag `dealers`), `findDealers(zip)`, `rowToDealer` | `/api/ffl-dealers` |
 | `data/settings.ts` | `getSettings` (cached, tag `settings`), `shippingFor`, `defaultSettings` | `/api/settings`, `/api/admin/settings`, `createOrder` |
 | `data/orders.ts` | `orderInput`, `createOrder`, `getOrderById`, `listOrdersForUser`, `listOrdersAdmin`, `orderUpdate`, `updateOrderAdmin`, `rowToOrder` | `/api/orders*`, `/api/admin/orders*`, `/api/admin/stats` |
@@ -118,7 +118,7 @@ Catalog, dealer and settings writes call `revalidateTag(…, { expire: 0 })`, so
 | `supabase/clients.ts` | `publicClient` (cached reads), `sessionClient` (cookies), `serviceClient` (trusted writes) | data layer and auth |
 | `supabase/browser.ts` | `browserClient` | (available for realtime/client features) |
 | `image-loader.ts` | next/image loader that maps `/catalog/*` to Cloudinary `f_auto,q_auto` URLs | every `<Image>` |
-| `store.ts` | `useStore`, `lookupProduct`, `useProductLookup`, `linePrice`, `totals`, `cartCount` | client components |
+| `store.ts` | `useStore` (cart, wishlist, orders, `known` snapshots, `recentViewed`, `recentSearches`, `savedCheckout`), `lookupProduct`, `useProductLookup`, `linePrice`, `totals`, `cartCount` | client components |
 
 ## 5. Database — `supabase/migrations/0001_init.sql`
 

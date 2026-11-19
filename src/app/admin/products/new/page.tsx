@@ -1,21 +1,12 @@
-"use client";
+import { Suspense } from "react";
+import { Loading } from "@/components/admin/admin-ui";
+import { NewProduct } from "./new-product";
 
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
-import { useStore } from "@/lib/store";
-import { AdminTitle } from "@/components/admin/admin-ui";
-import { ProductForm } from "@/components/admin/product-form";
-
-/** /admin/products/new — POST /api/admin/products */
-export default function NewProduct() {
-  const demo = useStore((s) => s.viewerChecked && !s.backend);
+/** /admin/products/new[?from=<id>] — reads ?from=, so the client part sits in Suspense. */
+export default function Page() {
   return (
-    <>
-      <Link href="/admin/products" className="mb-4 inline-flex items-center gap-1 text-sm font-semibold hover:underline">
-        <ArrowLeft className="size-4" /> Products
-      </Link>
-      <AdminTitle title="New product" />
-      <ProductForm demo={demo} />
-    </>
+    <Suspense fallback={<Loading rows={4} />}>
+      <NewProduct />
+    </Suspense>
   );
 }

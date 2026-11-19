@@ -5,6 +5,7 @@ import { Pencil, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { money } from "@/lib/format";
 import { dealerAddress, type Dealer } from "@/lib/catalog";
+import { stateFromZip } from "@/lib/us";
 import { adminRequest, useAdmin } from "@/components/admin/use-admin";
 import { AdminTitle, Field, Loading, Notice, TextInput } from "@/components/admin/admin-ui";
 import { Button } from "@/components/ui/button";
@@ -134,7 +135,7 @@ export default function DealersAdmin() {
                 <Field label="Street address" htmlFor="d-addr" className="col-span-6"><TextInput id="d-addr" required value={draft.address} onChange={(e) => set("address", e.target.value)} /></Field>
                 <Field label="City" htmlFor="d-city" className="col-span-3"><TextInput id="d-city" required value={draft.city} onChange={(e) => set("city", e.target.value)} /></Field>
                 <Field label="State" htmlFor="d-state" className="col-span-1"><TextInput id="d-state" required maxLength={2} value={draft.state} onChange={(e) => set("state", e.target.value.toUpperCase())} /></Field>
-                <Field label="ZIP" htmlFor="d-zip" className="col-span-2"><TextInput id="d-zip" required inputMode="numeric" value={draft.zip} onChange={(e) => set("zip", e.target.value)} /></Field>
+                <Field label="ZIP" htmlFor="d-zip" className="col-span-2"><TextInput id="d-zip" required inputMode="numeric" autoComplete="postal-code" value={draft.zip} onChange={(e) => { const v = e.target.value; set("zip", v); const s = !draft.state ? stateFromZip(v) : null; if (s) set("state", s); }} /></Field>
                 <Field label="Phone" htmlFor="d-phone" className="col-span-3"><TextInput id="d-phone" value={draft.phone} onChange={(e) => set("phone", e.target.value)} /></Field>
                 <Field label="Transfer fee" htmlFor="d-fee" className="col-span-3"><TextInput id="d-fee" inputMode="decimal" value={draft.transferFee} onChange={(e) => set("transferFee", e.target.value)} /></Field>
                 <Field label="Email" htmlFor="d-email" className="col-span-6"><TextInput id="d-email" type="email" value={draft.email} onChange={(e) => set("email", e.target.value)} /></Field>

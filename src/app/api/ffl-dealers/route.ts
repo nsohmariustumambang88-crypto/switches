@@ -1,10 +1,11 @@
-import type { NextRequest } from "next/server";
-import { findDealers } from "@/lib/data/dealers";
+import { getDealers } from "@/lib/data/dealers";
 import { hasSupabase } from "@/lib/supabase/config";
 
-/** GET /api/ffl-dealers?zip=78701 — active FFL dealers, nearest ZIP first. */
-export async function GET(req: NextRequest) {
-  const zip = req.nextUrl.searchParams.get("zip")?.replace(/\D/g, "").slice(0, 5) || undefined;
-  const dealers = await findDealers(zip);
-  return Response.json({ sample: !hasSupabase, dealers });
+/**
+ * GET /api/ffl-dealers — every active FFL dealer as one static, CDN-cached
+ * response (no per-request function or DB call). The browser sorts by ZIP
+ * with sortDealersByZip(). Admin edits invalidate it via the "dealers" tag.
+ */
+export async function GET() {
+  return Response.json({ sample: !hasSupabase, dealers: await getDealers() });
 }

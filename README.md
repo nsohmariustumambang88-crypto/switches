@@ -32,6 +32,32 @@ Without Supabase keys the app runs in **demo mode**:
 - Checkout saves orders in the browser only.
 - `/admin` is read-only and shows sample data.
 
+## Free-tier friendly: nothing keeps running
+
+Nothing runs in the background: there are no cron jobs, no polling, no realtime subscriptions and no keep-alive pings. Server work happens only when someone does something.
+
+| What | Cost per visit |
+| --- | --- |
+| Storefront pages (home, listings, product pages) | Static HTML from the CDN. Data is cached with `cacheLife("max")` and refreshed only when an admin saves a change (`revalidateTag`). |
+| `/api/search-index`, `/api/ffl-dealers`, `/api/categories`, `/api/settings` | Static and CDN-cached. Search and dealer sorting run in the browser. |
+| Images | Cloudinary `f_auto,q_auto` through a custom loader, so Vercel's image optimisation quota isn't used. |
+| Account check | Skipped entirely without a session cookie. Signed-in visitors make one `/api/auth/me` call, cached for 10 minutes per tab. |
+| Proxy (middleware) | Runs on `/admin/*` only, and checks a cookie without any network call. |
+| Function calls | Only for real actions: sign-in or sign-up, placing an order, syncing favorites, and admin work. |
+
+Autofill and speed features keep everything on the device:
+
+- remembered checkout details, with an opt-out at checkout
+- recent searches and recently viewed products
+- ZIP→state lookup, done offline
+- formatted card fields
+- browser autofill tokens on every form field
+
+Hosting notes:
+
+- Supabase's free plan pauses a project after a week with no activity. Wake it from the dashboard; nothing here pings it.
+- Vercel's Hobby (free) plan is for non-commercial use. A client's live store needs the Pro plan or another host.
+
 ## Connect Supabase (new project)
 
 1. Create a new project at supabase.com for this store.

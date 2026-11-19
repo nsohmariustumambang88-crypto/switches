@@ -157,6 +157,7 @@ export function OrderDetail({ id }: { id: string }) {
               <p className="text-sm leading-relaxed">
                 <strong className="block">{o.billing.name}</strong>
                 {o.billing.line1}, {o.billing.city}, {o.billing.state} {o.billing.zip}
+                {o.billing.phone && <span className="block text-ink-2">{o.billing.phone}</span>}
               </p>
             </Section>
           )}

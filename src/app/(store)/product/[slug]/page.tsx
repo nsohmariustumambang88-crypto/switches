@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { ProductSkeleton } from "@/components/skeletons";
+import { RecentlyViewed, RecordView } from "@/components/recently-viewed";
 import { ShieldCheck, TriangleAlert } from "lucide-react";
 import { getCategory, getProduct, getProducts, getRelated } from "@/lib/data/catalog";
 import { PageBar } from "@/components/page-bar";
@@ -169,6 +170,9 @@ async function ProductContent({ slug }: { slug: string }) {
         <SectionHead title="You may also like" href={`/shop/${p.category}`} className="mb-4 md:mb-8" />
         <ProductRail products={related} />
       </section>
+
+      <RecentlyViewed exclude={p.slug} title="Recently viewed" />
+      <RecordView product={p} />
     </>
   );
 }

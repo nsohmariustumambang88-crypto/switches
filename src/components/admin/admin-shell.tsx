@@ -16,6 +16,7 @@ import {
 import { cn } from "@/lib/utils";
 import { site } from "@/config/site";
 import { useStore } from "@/lib/store";
+import { clearViewerCache } from "@/components/boot";
 import { Button, buttonVariants } from "@/components/ui/button";
 
 export const adminNav = [
@@ -134,6 +135,7 @@ export function AdminAccount() {
         className="w-full justify-start text-echo hover:bg-white/8 hover:text-primary-foreground"
         onClick={async () => {
           await fetch("/api/auth/sign-out", { method: "POST" });
+          clearViewerCache();
           useStore.getState().setViewer(null, true);
           router.push("/");
         }}

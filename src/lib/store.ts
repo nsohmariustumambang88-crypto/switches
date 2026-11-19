@@ -12,6 +12,19 @@ export type CartLine = {
   selected: boolean;
 };
 
+/** Checkout details remembered on this device (never sent anywhere until an order is placed). */
+export type SavedCheckout = {
+  name: string;
+  line1: string;
+  city: string;
+  state: string;
+  zip: string;
+  phone: string;
+  email: string;
+  dealerId: string;
+  pay: "card" | "ach";
+};
+
 export type ClientViewer = {
   id: string;
   email: string;
@@ -32,7 +45,17 @@ type State = {
   /** Snapshots of products seen in this browser, so cart/favorites resolve
    *  products that only exist in the database. */
   known: Record<string, Product>;
+  /** Recently viewed product slugs, newest first. */
+  recentViewed: string[];
+  /** Recent search queries, newest first. */
+  recentSearches: string[];
+  /** Remembered checkout details (opt-out at checkout). */
+  savedCheckout: SavedCheckout | null;
   remember: (p: Product) => void;
+  markViewed: (p: Product) => void;
+  addRecentSearch: (q: string) => void;
+  clearRecentSearches: () => void;
+  saveCheckout: (c: SavedCheckout | null) => void;
   setViewer: (v: ClientViewer, backend: boolean) => void;
   add: (product: Product, rounds?: number, qty?: number) => void;
   setQty: (key: string, qty: number) => void;
@@ -58,7 +81,23 @@ export const useStore = create<State>()(
       wishlist: [],
       orders: [],
       known: {},
+      recentViewed: [],
+      recentSearches: [],
+      savedCheckout: null,
       remember: (p) => set((s) => ({ known: { ...s.known, [p.slug]: p } })),
+      markViewed: (p) =>
+        set((s) => ({
+          known: { ...s.known, [p.slug]: p },
+          recentViewed: [p.slug, ...s.recentViewed.filter((x) => x !== p.slug)].slice(0, 12),
+        })),
+      addRecentSearch: (q) =>
+        set((s) => {
+          const v = q.trim().slice(0, 60);
+          if (!v) return {};
+          return { recentSearches: [v, ...s.recentSearches.filter((x) => x.toLowerCase() !== v.toLowerCase())].slice(0, 6) };
+        }),
+      clearRecentSearches: () => set({ recentSearches: [] }),
+      saveCheckout: (c) => set({ savedCheckout: c }),
       setViewer: (viewer, backend) => set({ viewer, backend, viewerChecked: true }),
       add: (product, rounds, qty = 1) =>
         set((s) => {
@@ -95,7 +134,15 @@ export const useStore = create<State>()(
       name: "storefront",
       storage: createJSONStorage(() => localStorage),
       skipHydration: true,
-      partialize: (s) => ({ cart: s.cart, wishlist: s.wishlist, orders: s.orders, known: s.known }),
+      partialize: (s) => ({
+        cart: s.cart,
+        wishlist: s.wishlist,
+        orders: s.orders,
+        known: s.known,
+        recentViewed: s.recentViewed,
+        recentSearches: s.recentSearches,
+        savedCheckout: s.savedCheckout,
+      }),
       onRehydrateStorage: () => () => {
         useStore.setState({ hydrated: true });
       },

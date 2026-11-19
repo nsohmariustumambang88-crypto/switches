@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, CreditCard, Landmark, Lock, MapPin, Store, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { dealerAddress, demoDealers, type Dealer, type Order } from "@/lib/catalog";
+import { dealerAddress, demoDealers, sortDealersByZip, type Dealer, type Order } from "@/lib/catalog";
+import { US_STATES, formatCard, formatExpiry, stateFromZip } from "@/lib/us";
 import { money } from "@/lib/format";
 import { linePrice, totals, useProductLookup, useStore } from "@/lib/store";
 import { gsap, useGSAP, prefersReducedMotion } from "@/lib/gsap";
@@ -44,31 +45,61 @@ export function CheckoutView() {
   const find = useProductLookup();
   const { lines, subtotal, shipping, total, hasFirearm } = totals(cart, find);
 
+  const saved = useStore((s) => s.savedCheckout);
+  const saveCheckout = useStore((s) => s.saveCheckout);
+
   const [step, setStep] = useState(0);
   const [editing, setEditing] = useState(true);
   const [addr, setAddr] = useState<Address>({ name: "", line1: "", city: "", state: "", zip: "" });
+  const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
-  const [dealers, setDealers] = useState<Dealer[]>(demoDealers);
+  const [allDealers, setAllDealers] = useState<Dealer[]>(demoDealers);
   const [sampleDealers, setSampleDealers] = useState(true);
   const [dealer, setDealer] = useState<string>("");
   const [pay, setPay] = useState<"card" | "ach">("card");
+  const [card, setCard] = useState({ number: "", exp: "", cvc: "" });
+  const [remember, setRemember] = useState(true);
   const [attest, setAttest] = useState(false);
   const [placing, setPlacing] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
 
-  // GET /api/ffl-dealers?zip= — refreshed when the ZIP changes.
-  const zip = addr.zip.replace(/\D/g, "").slice(0, 5);
+  // Autofill once the local store has loaded: this device's last checkout,
+  // then the signed-in account's name/email. Saved details open collapsed.
+  const [prefilled, setPrefilled] = useState(false);
+  if (hydrated && !prefilled) {
+    setPrefilled(true);
+    if (saved) {
+      setAddr({ name: saved.name, line1: saved.line1, city: saved.city, state: saved.state, zip: saved.zip });
+      setPhone(saved.phone);
+      setEmail(saved.email);
+      setDealer(saved.dealerId);
+      setPay(saved.pay);
+      if (saved.name && saved.line1 && saved.city && saved.state && saved.zip) setEditing(false);
+    } else if (viewer?.fullName) {
+      setAddr((a) => ({ ...a, name: viewer.fullName ?? "" }));
+    }
+  }
+
+  // GET /api/ffl-dealers once — a static, CDN-cached list; sorted by ZIP here.
   useEffect(() => {
     const ctrl = new AbortController();
-    fetch(`/api/ffl-dealers${zip.length === 5 ? `?zip=${zip}` : ""}`, { signal: ctrl.signal })
+    fetch("/api/ffl-dealers", { signal: ctrl.signal })
       .then((r) => r.json())
       .then((d: { sample: boolean; dealers: Dealer[] }) => {
-        setDealers(d.dealers);
+        setAllDealers(d.dealers);
         setSampleDealers(d.sample);
       })
       .catch(() => {});
     return () => ctrl.abort();
-  }, [zip]);
+  }, []);
+  const zip = addr.zip.replace(/\D/g, "").slice(0, 5);
+  const dealers = useMemo(() => sortDealersByZip(allDealers, zip), [allDealers, zip]);
+
+  const setZip = (value: string) => {
+    const next = value.replace(/[^\d-]/g, "").slice(0, 10);
+    const inferred = !addr.state ? stateFromZip(next) : null;
+    setAddr((a) => ({ ...a, zip: next, ...(inferred ? { state: inferred } : {}) }));
+  };
 
   const contactEmail = viewer?.email ?? email;
   const chosen = dealers.find((d) => d.id === dealer);
@@ -117,7 +148,7 @@ export function CheckoutView() {
         body: JSON.stringify({
           email: contactEmail,
           items: lines.map((l) => ({ slug: l.slug, qty: l.qty, rounds: l.rounds })),
-          billing: { ...addr, state: addr.state.toUpperCase() },
+          billing: { ...addr, state: addr.state.toUpperCase(), ...(phone.trim() ? { phone: phone.trim() } : {}) },
           fflDealerId: hasFirearm ? dealer : undefined,
           payment: pay,
           attested: true,
@@ -152,6 +183,8 @@ export function CheckoutView() {
       }
       placeOrder(order);
       clearSelected();
+      // Remember (or forget) these details on this device for next time.
+      saveCheckout(remember ? { ...addr, phone, email: contactEmail, dealerId: dealer, pay } : null);
       toast.success("Order placed", { description: `Order #${order.id}` });
       router.push(`/orders/${order.id}`);
     } catch {
@@ -225,44 +258,54 @@ export function CheckoutView() {
                     )}
                   </div>
                   {editing ? (
+                    // Section-scoped autocomplete tokens let the browser fill the whole block in one tap.
                     <div className="grid grid-cols-6 gap-3">
-                      {(
-                        [
-                          ["name", "Full name", "col-span-6", "name"],
-                          ["line1", "Street address", "col-span-6", "street-address"],
-                          ["city", "City", "col-span-6 md:col-span-3", "address-level2"],
-                          ["state", "State", "col-span-3 md:col-span-1", "address-level1"],
-                          ["zip", "ZIP", "col-span-3 md:col-span-2", "postal-code"],
-                        ] as const
-                      ).map(([k, label, span, ac]) => (
-                        <div key={k} className={span}>
-                          <Label htmlFor={`a-${k}`} className="mb-1.5 block text-xs font-bold text-ink-2">
-                            {label}
-                          </Label>
-                          <Input
-                            id={`a-${k}`}
-                            autoComplete={ac}
-                            value={addr[k]}
-                            onChange={(e) => setAddr({ ...addr, [k]: e.target.value })}
-                            className={field}
-                          />
-                        </div>
-                      ))}
+                      <div className="col-span-6">
+                        <Label htmlFor="a-name" className="mb-1.5 block text-xs font-bold text-ink-2">Full name</Label>
+                        <Input id="a-name" name="name" autoComplete="billing name" enterKeyHint="next" value={addr.name} onChange={(e) => setAddr({ ...addr, name: e.target.value })} className={field} />
+                      </div>
+                      <div className="col-span-6">
+                        <Label htmlFor="a-line1" className="mb-1.5 block text-xs font-bold text-ink-2">Street address</Label>
+                        <Input id="a-line1" name="address" autoComplete="billing street-address" enterKeyHint="next" value={addr.line1} onChange={(e) => setAddr({ ...addr, line1: e.target.value })} className={field} />
+                      </div>
+                      <div className="col-span-6 md:col-span-3">
+                        <Label htmlFor="a-city" className="mb-1.5 block text-xs font-bold text-ink-2">City</Label>
+                        <Input id="a-city" name="city" autoComplete="billing address-level2" enterKeyHint="next" value={addr.city} onChange={(e) => setAddr({ ...addr, city: e.target.value })} className={field} />
+                      </div>
+                      <div className="col-span-3 md:col-span-1">
+                        <Label htmlFor="a-state" className="mb-1.5 block text-xs font-bold text-ink-2">State</Label>
+                        <select
+                          id="a-state"
+                          name="state"
+                          autoComplete="billing address-level1"
+                          value={addr.state}
+                          onChange={(e) => setAddr({ ...addr, state: e.target.value })}
+                          className={cn(field, "w-full cursor-pointer px-3 outline-none focus:ring-2 focus:ring-ink")}
+                        >
+                          <option value="">—</option>
+                          {US_STATES.map((s) => (
+                            <option key={s.code} value={s.code}>{s.code}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="col-span-3 md:col-span-2">
+                        <Label htmlFor="a-zip" className="mb-1.5 block text-xs font-bold text-ink-2">ZIP</Label>
+                        <Input id="a-zip" name="zip" inputMode="numeric" autoComplete="billing postal-code" enterKeyHint="next" value={addr.zip} onChange={(e) => setZip(e.target.value)} className={field} />
+                      </div>
                       {!viewer && (
-                        <div className="col-span-6">
-                          <Label htmlFor="a-email" className="mb-1.5 block text-xs font-bold text-ink-2">
-                            Email for order updates
-                          </Label>
-                          <Input
-                            id="a-email"
-                            type="email"
-                            autoComplete="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            className={field}
-                          />
+                        <div className="col-span-6 md:col-span-3">
+                          <Label htmlFor="a-email" className="mb-1.5 block text-xs font-bold text-ink-2">Email for order updates</Label>
+                          <Input id="a-email" name="email" type="email" inputMode="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} className={field} />
                         </div>
                       )}
+                      <div className={cn("col-span-6", !viewer && "md:col-span-3")}>
+                        <Label htmlFor="a-tel" className="mb-1.5 block text-xs font-bold text-ink-2">Phone (optional — for the FFL dealer)</Label>
+                        <Input id="a-tel" name="tel" type="tel" inputMode="tel" autoComplete="billing tel" value={phone} onChange={(e) => setPhone(e.target.value)} className={field} />
+                      </div>
+                      <label className="col-span-6 flex cursor-pointer items-center gap-3 pt-1 text-sm">
+                        <Checkbox checked={remember} onCheckedChange={(c) => setRemember(!!c)} />
+                        Remember these details on this device for faster checkout
+                      </label>
                     </div>
                   ) : (
                     <div className="flex gap-3 rounded-lg bg-surface p-4">
@@ -270,6 +313,7 @@ export function CheckoutView() {
                       <p className="text-sm leading-relaxed">
                         <strong className="block">{addr.name}</strong>
                         {addr.line1}, {addr.city}, {addr.state} {addr.zip}
+                        {(viewer?.email ?? email) && <span className="block text-ink-2">{viewer?.email ?? email}{phone ? ` · ${phone}` : ""}</span>}
                       </p>
                     </div>
                   )}
@@ -283,7 +327,7 @@ export function CheckoutView() {
                       complete Form 4473 and the background check when you collect.
                     </p>
                     <RadioGroup value={dealer} onValueChange={(v) => setDealer(v as string)} className="gap-2">
-                      {dealers.map((d) => (
+                      {dealers.map((d, i) => (
                         <Label
                           key={d.id}
                           className={cn(
@@ -294,7 +338,14 @@ export function CheckoutView() {
                           <RadioGroupItem value={d.id} className="mt-0.5" />
                           <Store className="size-5 shrink-0" />
                           <span className="text-sm leading-snug">
-                            <strong className="block">{d.name}</strong>
+                            <strong className="block">
+                              {d.name}
+                              {saved?.dealerId === d.id ? (
+                                <span className="ml-2 inline-flex h-5 items-center rounded-[3px] border border-ink px-1.5 align-middle text-[0.625rem] font-bold uppercase">Last used</span>
+                              ) : i === 0 && zip.length === 5 ? (
+                                <span className="ml-2 inline-flex h-5 items-center rounded-[3px] bg-ink px-1.5 align-middle text-[0.625rem] font-bold text-primary-foreground uppercase">Nearest</span>
+                              ) : null}
+                            </strong>
                             <span className="text-ink-2">{dealerAddress(d)}</span>
                             <span className="mt-1 block text-xs text-ink-2">
                               {d.transferFee != null ? `Transfer fee ${money(d.transferFee)}` : "Transfer fee set by dealer"}
@@ -340,15 +391,15 @@ export function CheckoutView() {
                   <div className="mt-5 grid grid-cols-2 gap-3">
                     <div className="col-span-2">
                       <Label htmlFor="cc" className="mb-1.5 block text-xs font-bold text-ink-2">Card number</Label>
-                      <Input id="cc" inputMode="numeric" autoComplete="cc-number" placeholder="1234 1234 1234 1234" className={field} />
+                      <Input id="cc" name="cardnumber" inputMode="numeric" autoComplete="cc-number" placeholder="1234 1234 1234 1234" value={card.number} onChange={(e) => setCard({ ...card, number: formatCard(e.target.value) })} className={cn(field, "tabular-nums")} />
                     </div>
                     <div>
                       <Label htmlFor="exp" className="mb-1.5 block text-xs font-bold text-ink-2">Expiry</Label>
-                      <Input id="exp" autoComplete="cc-exp" placeholder="MM / YY" className={field} />
+                      <Input id="exp" name="cc-exp" inputMode="numeric" autoComplete="cc-exp" placeholder="MM / YY" value={card.exp} onChange={(e) => setCard({ ...card, exp: formatExpiry(e.target.value) })} className={cn(field, "tabular-nums")} />
                     </div>
                     <div>
                       <Label htmlFor="cvc" className="mb-1.5 block text-xs font-bold text-ink-2">CVC</Label>
-                      <Input id="cvc" inputMode="numeric" autoComplete="cc-csc" placeholder="123" className={field} />
+                      <Input id="cvc" name="cvc" inputMode="numeric" autoComplete="cc-csc" placeholder="123" maxLength={4} value={card.cvc} onChange={(e) => setCard({ ...card, cvc: e.target.value.replace(/\D/g, "").slice(0, 4) })} className={cn(field, "tabular-nums")} />
                     </div>
                   </div>
                 ) : (
