@@ -1,5 +1,6 @@
 // Uploads public/catalog/** to Cloudinary as <CLOUDINARY_FOLDER>/catalog/<dir>/<name>.
-// Usage: npm run cloudinary:upload   (reads .env.local)
+// Usage: npm run cloudinary:upload                       (everything; reads .env.local)
+//        npm run cloudinary:upload -- glock-19-gen6 p365  (only paths containing any of the words)
 import { readdirSync, statSync } from "node:fs";
 import { join, relative, extname, sep } from "node:path";
 import { v2 as cloudinary } from "cloudinary";
@@ -23,6 +24,11 @@ const walk = (dir) => {
   }
 };
 walk(root);
+const only = process.argv.slice(2);
+if (only.length) {
+  const keep = files.filter((f) => only.some((w) => f.split(sep).join("/").includes(w)));
+  files.splice(0, files.length, ...keep);
+}
 
 let ok = 0;
 const failed = [];

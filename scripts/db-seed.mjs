@@ -3,6 +3,7 @@
 // Usage: npm run db:seed
 import postgres from "postgres";
 import { categories, products } from "../src/lib/catalog.ts";
+import { authors, builtinArticles } from "../src/lib/learn.ts";
 
 process.loadEnvFile(".env.local");
 const url = process.env.SUPABASE_DB_URL;
@@ -28,9 +29,10 @@ const settings = {
 try {
   await sql.begin(async (tx) => {
     for (const [i, c] of categories.entries()) {
-      await tx`insert into public.categories (id, name, short, blurb, sort)
-               values (${c.id}, ${c.name}, ${c.short}, ${c.blurb}, ${i})
-               on conflict (id) do update set name = excluded.name, short = excluded.short, blurb = excluded.blurb, sort = excluded.sort`;
+      await tx`insert into public.categories (id, name, short, blurb, sort, meta_title, meta_description, intro)
+               values (${c.id}, ${c.name}, ${c.short}, ${c.blurb}, ${i}, ${c.metaTitle ?? null}, ${c.metaDescription ?? null}, ${c.intro ?? null})
+               on conflict (id) do update set name = excluded.name, short = excluded.short, blurb = excluded.blurb, sort = excluded.sort,
+                 meta_title = excluded.meta_title, meta_description = excluded.meta_description, intro = excluded.intro`;
       for (const [j, t] of c.types.entries()) {
         await tx`insert into public.category_types (category_id, id, name, sort)
                  values (${c.id}, ${t.id}, ${t.name}, ${j})
@@ -42,17 +44,21 @@ try {
       const [row] = await tx`
         insert into public.products
           (slug, name, brand, category_id, type, caliber, price, compare_at, rating, reviews, image, photo,
-           figure_label, figure_value, strip, description, specs, ffl, notice, trending, active, stock, sort)
+           figure_label, figure_value, strip, description, summary, meta_title, image_alt, mpn, gtin,
+           specs, ffl, notice, trending, active, stock, sort)
         values
           (${p.slug}, ${p.name}, ${p.brand}, ${p.category}, ${p.type}, ${p.caliber ?? null}, ${p.price},
            ${p.compareAt ?? null}, ${p.rating}, ${p.reviews}, ${p.image}, ${p.photo ?? null},
-           ${p.figure.label}, ${p.figure.value}, ${p.strip}, ${p.description}, ${tx.json(p.specs)},
-           ${!!p.ffl}, ${p.notice ?? null}, ${!!p.trending}, true, 25, ${i})
+           ${p.figure.label}, ${p.figure.value}, ${p.strip}, ${p.description},
+           ${p.summary ?? null}, ${p.metaTitle ?? null}, ${p.imageAlt ?? null}, ${p.mpn ?? null}, ${p.gtin ?? null},
+           ${tx.json(p.specs)}, ${!!p.ffl}, ${p.notice ?? null}, ${!!p.trending}, true, 25, ${i})
         on conflict (slug) do update set
           name = excluded.name, brand = excluded.brand, category_id = excluded.category_id, type = excluded.type,
           caliber = excluded.caliber, image = excluded.image, photo = excluded.photo,
           figure_label = excluded.figure_label, figure_value = excluded.figure_value, strip = excluded.strip,
-          description = excluded.description, specs = excluded.specs, ffl = excluded.ffl, notice = excluded.notice
+          description = excluded.description, summary = excluded.summary, meta_title = excluded.meta_title,
+          image_alt = excluded.image_alt, mpn = excluded.mpn, gtin = excluded.gtin,
+          specs = excluded.specs, ffl = excluded.ffl, notice = excluded.notice
         returning id`;
       await tx`delete from public.product_packs where product_id = ${row.id}`;
       for (const k of p.packs ?? []) {
@@ -70,8 +76,26 @@ try {
     for (const [key, value] of Object.entries(settings)) {
       await tx`insert into public.settings (key, value) values (${key}, ${tx.json(value)}) on conflict (key) do nothing`;
     }
+
+    // Guides: inserted once. Re-seeding never overwrites edits made in Admin → Learn.
+    for (const a of authors) {
+      await tx`insert into public.authors (slug, name, kind, role, bio, credentials, url)
+               values (${a.slug}, ${a.name}, ${a.kind}, ${a.role}, ${a.bio}, ${a.credentials ?? null}, ${a.url ?? null})
+               on conflict (slug) do nothing`;
+    }
+    for (const a of builtinArticles) {
+      await tx`insert into public.articles
+                 (slug, pillar, title, meta_title, description, body, cover, cover_alt, author_slug, reviewer, reviewed_at,
+                  sources, changelog, related_products, status, published_at, updated_at)
+               values
+                 (${a.slug}, ${a.pillar}, ${a.title}, ${a.metaTitle ?? null}, ${a.description}, ${a.body}, ${a.cover ?? null},
+                  ${a.coverAlt ?? null}, ${a.author}, ${a.reviewer ?? null}, ${a.reviewedAt ?? null},
+                  ${tx.json(a.sources)}, ${tx.json(a.changelog)}, ${a.relatedProducts}, ${a.status},
+                  ${a.status === "published" ? a.publishedAt : null}, ${a.updatedAt})
+               on conflict (pillar, slug) do nothing`;
+    }
   });
-  console.log(`seeded ${categories.length} categories, ${products.length} products, dealers and settings`);
+  console.log(`seeded ${categories.length} categories, ${products.length} products, ${builtinArticles.length} guides, dealers and settings`);
 } catch (e) {
   console.error("seed failed:", e.message);
   process.exitCode = 1;

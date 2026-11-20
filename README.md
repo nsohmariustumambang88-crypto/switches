@@ -58,6 +58,26 @@ Hosting notes:
 - Supabase's free plan pauses a project after a week with no activity. Wake it from the dashboard; nothing here pings it.
 - Vercel's Hobby (free) plan is for non-commercial use. A client's live store needs the Pro plan or another host.
 
+## Search engines and guides
+
+Set `NEXT_PUBLIC_SITE_URL` to the live domain (for example `https://www.yourstore.com`, no trailing slash). Canonical URLs, the sitemap and structured data all use it.
+
+| What | Where |
+| --- | --- |
+| `/robots.txt` | `src/app/robots.ts`. Allows the store and blocks `/admin`, `/api/` and internal search results (`?q=`). |
+| `/sitemap.xml` | `src/app/sitemap.ts`. Lists products (with images), categories, guides and authors. `lastmod` comes only from real content edits. |
+| Titles and snippets | Every product has a short description (`summary`, ≤155 characters) and an optional search title. Categories have a search title, snippet and visible intro. Edit them in Admin → Products (Search & sharing). |
+| Structured data | `src/lib/seo.ts`: Organization, WebSite, Product with Offer or AggregateOffer, BreadcrumbList, ItemList, Article and ProfilePage. **No ratings are marked up:** the current ratings are placeholders. Add AggregateRating only once reviews come from verified buyers. |
+| Crawlable listings | Category pages ship the full product grid in the static HTML. The interactive filters take over in the browser. |
+| No-index | Cart, checkout, orders, favorites, profile, sign-in and admin. |
+
+**Guides (`/learn`)** are evergreen buying guides, grouped by topic, each written as Markdown:
+
+- **Pillars:** buying online, handguns, ammunition, triggers, glossary. State-law pages are intentionally not included yet.
+- **Writing and publishing:** write, edit, draft and publish in Admin → Learn. Publishing needs no deploy, because a save refreshes the cached pages.
+- **Built-in starter guides:** eight guides ship in `src/lib/learn.ts`, written from the manufacturers' published specs. `npm run db:seed` copies them into Supabase once and never overwrites admin edits.
+- **"Updated" dates:** a guide's date only moves when its title, summary, body, sources or products change.
+
 ## Connect Supabase (new project)
 
 1. Create a new project at supabase.com for this store.
@@ -100,4 +120,6 @@ The account is whichever one `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` in `.env.local`
 - **FFL dealers:** the three seeded dealers are samples. Manage the real list in Admin → FFL dealers.
 - **Payments:** no processor is connected yet, so orders are recorded without charging. PayPal and Stripe don't allow firearm sales; use a firearms-friendly processor.
 - **Returns policy:** the text on the product page is a placeholder.
-- **Images:** they're client-supplied retailer shots, mostly low resolution. Confirm usage rights.
+- **Images:** the original shots are client-supplied retailer photos, mostly low resolution. Confirm usage rights. The Glock Gen6/V, SIG P365, Rare Breed FRT-15L3/C3, Federal HST and Speer Gold Dot images come from the manufacturers' sites. Each has a provenance note next to it in `public/catalog/`. Confirm dealer media rights with each maker.
+- **Site URL:** set `NEXT_PUBLIC_SITE_URL` in Vercel. Without it, canonicals and the sitemap point at `http://localhost:3000`.
+- **Guide author:** the "Editorial team" profile is a placeholder. Add real writers, and a named reviewer for legal topics, before launch.

@@ -15,6 +15,7 @@ import { categoryGlyph } from "@/components/icons";
 import { site } from "@/config/site";
 
 const account = [
+  { href: "/learn", label: "Buying guides" },
   { href: "/orders", label: "My orders" },
   { href: "/favorites", label: "Favorites" },
   { href: "/profile", label: "Profile" },

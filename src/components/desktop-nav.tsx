@@ -37,6 +37,25 @@ function Links({ pathname }: { pathname: string | null }) {
           </li>
         );
       })}
+      <li>
+        <Link
+          href="/learn"
+          aria-current={pathname?.startsWith("/learn") ? "page" : undefined}
+          className={cn(
+            "relative px-3 py-2 text-sm font-semibold transition-colors hover:text-ink",
+            pathname?.startsWith("/learn") ? "text-ink" : "text-ink-2"
+          )}
+        >
+          Guides
+          <span
+            aria-hidden="true"
+            className={cn(
+              "absolute inset-x-3 -bottom-[1.1rem] h-[3px] origin-left bg-ink transition-transform duration-300 ease-out-expo",
+              pathname?.startsWith("/learn") ? "scale-x-100" : "scale-x-0"
+            )}
+          />
+        </Link>
+      </li>
     </ul>
   );
 }

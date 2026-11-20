@@ -90,7 +90,7 @@ export function Field({
   htmlFor,
 }: {
   label: string;
-  hint?: string;
+  hint?: React.ReactNode;
   className?: string;
   children: React.ReactNode;
   htmlFor?: string;

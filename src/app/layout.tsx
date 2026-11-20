@@ -4,6 +4,8 @@ import "./globals.css";
 import { site } from "@/config/site";
 import { Toaster } from "@/components/ui/sonner";
 import { BootScript, StoreHydrator, ViewerSync } from "@/components/boot";
+import { JsonLd } from "@/components/json-ld";
+import { imageUrl, organizationLd, websiteLd } from "@/lib/seo";
 
 const archivo = Archivo({
   subsets: ["latin"],
@@ -13,8 +15,27 @@ const archivo = Archivo({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(site.url),
   title: { default: `${site.name} — ${site.tagline}`, template: `%s — ${site.name}` },
   description: site.description,
+  applicationName: site.name,
+  category: "shopping",
+  // No canonical/og:url here: they would be inherited by every page. Each page sets its own.
+  openGraph: {
+    type: "website",
+    siteName: site.name,
+    locale: "en_US",
+    title: `${site.name} — ${site.tagline}`,
+    description: site.description,
+    images: [{ url: imageUrl("catalog/handguns/glock-19-gen6.png", { og: true }), width: 1200, height: 630, alt: "Glock 19 Gen6 9mm pistol" }],
+  },
+  twitter: { card: "summary_large_image" },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 },
+  },
+  formatDetection: { telephone: false, address: false, email: false },
 };
 
 export const viewport: Viewport = {
@@ -45,6 +66,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         </a>
         <StoreHydrator />
         <ViewerSync />
+        <JsonLd data={[organizationLd(), websiteLd()]} />
         {children}
         <Toaster position="top-center" />
       </body>

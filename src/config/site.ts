@@ -9,7 +9,12 @@ export const site = {
   lockup: ["CALI", "BER"],
   tagline: "Licensed firearms, ammunition & parts",
   description:
-    "Handguns shipped to your local FFL, ammunition, triggers and parts — from a federally licensed dealer.",
+    "Buy Glock and SIG Sauer handguns shipped to your local FFL, 9mm and rifle ammunition, Rare Breed forced reset triggers and parts from a licensed dealer.",
+  /**
+   * Public origin used for canonical URLs, the sitemap and structured data.
+   * Set NEXT_PUBLIC_SITE_URL to the live domain (e.g. https://www.example.com).
+   */
+  url: (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000").replace(/\/+$/, ""),
   supportEmail: "support@example.com", // PLACEHOLDER
   supportPhone: "(000) 000-0000", // PLACEHOLDER
   minimumAge: 21,

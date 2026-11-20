@@ -26,6 +26,14 @@ Images are served from Cloudinary (the account set in `.env.local`, folder `stor
 | `/orders/[id]` | `orders/[id]/track-view.tsx` | — | `GET /api/orders/:id` (signed in); "Buy again" may call `GET /api/products?slugs=` |
 | `/favorites` | `favorites/favorites-view.tsx` | — | `GET /api/products?slugs=` for unseen favorites |
 | `/profile` | `profile/profile-view.tsx` | — | `POST /api/auth/sign-out`; links to `/admin` for admins |
+| `/learn` | `learn/page.tsx` | `getActivePillars`, `getArticles` | — |
+| `/learn/[pillar]` (`buying-online`, `handguns`, `ammo`, `triggers`, `reference`) | `learn/[pillar]/page.tsx` | `getPillar`, `getArticles`, `getCategory` | — |
+| `/learn/[pillar]/[slug]` | `learn/[pillar]/[slug]/page.tsx` (Markdown via `lib/markdown.ts`) | `getArticle`, `getAuthor`, `getRelatedArticles`, `getProduct` | — |
+| `/authors/[slug]` | `authors/[slug]/page.tsx` | `getAuthor`, `getArticles` | — |
+
+**Site-wide metadata routes** (`src/app/`): `robots.ts` → `/robots.txt`, `sitemap.ts` → `/sitemap.xml` and `manifest.ts` → `/manifest.webmanifest`. They are static and refreshed by the `catalog` and `articles` cache tags.
+
+Pages with no search value set `robots: noindex`: `/cart`, `/checkout`, `/orders`, `/orders/[id]`, `/favorites`, `/profile`, `/welcome` and `/admin/*`.
 
 Every page runs `ViewerSync` (`components/boot.tsx`):
 
@@ -45,6 +53,9 @@ The proxy (`src/proxy.ts`, matching `/admin/*` only, with no network calls) redi
 | `/admin/products` | `products/page.tsx` | `GET /api/admin/products` |
 | `/admin/products/new` | `products/new/page.tsx` → `components/admin/product-form.tsx` | `POST /api/admin/products`, `POST /api/admin/media/sign` + Cloudinary upload |
 | `/admin/products/[id]` | `products/[id]/edit-product.tsx` → `product-form.tsx` | `GET`, `PATCH`, `DELETE /api/admin/products/:id` |
+| `/admin/learn` | `learn/page.tsx` | `GET /api/admin/articles` |
+| `/admin/learn/new` | `learn/new/page.tsx` → `components/admin/article-form.tsx` | `POST /api/admin/articles` |
+| `/admin/learn/[id]` | `learn/[id]/edit-guide.tsx` → `article-form.tsx` | `GET`, `PATCH`, `DELETE /api/admin/articles/:id` |
 | `/admin/customers` | `customers/page.tsx` | `GET /api/admin/customers`, `PATCH /api/admin/customers/:id` |
 | `/admin/dealers` | `dealers/page.tsx` | `GET`, `POST /api/admin/dealers`, `PATCH`, `DELETE /api/admin/dealers/:id` |
 | `/admin/media` | `media/page.tsx` | `GET`, `DELETE /api/admin/media`, `POST /api/admin/media/sign` |
@@ -89,7 +100,9 @@ Admin routes need an admin session. In demo mode, GET returns sample data and wr
 | --- | --- | --- | --- |
 | GET | `/api/admin/stats` | — | `{ stats{ordersToday, revenue30d, byStatus, products, lowStock, customers}, recent[] }` |
 | GET / POST | `/api/admin/products` | POST: `productInput` (see `lib/data/admin.ts`) | `{ products[] }` / `201 { product }` |
-| GET / PATCH / DELETE | `/api/admin/products/:id` | PATCH: `productInput` | `{ product }` / `{ ok }` |
+| GET / PATCH / DELETE | `/api/admin/products/:id` | PATCH: `productInput` (now including `summary`, `metaTitle`, `imageAlt`, `mpn`, `gtin`) | `{ product }` / `{ ok }` |
+| GET / POST | `/api/admin/articles` | POST: `articleInput` (see `lib/data/admin-articles.ts`) | `{ articles[], authors[] }` / `201 { article }` |
+| GET / PATCH / DELETE | `/api/admin/articles/:id` | PATCH: `articleInput` | `{ article, authors[] }` / `{ ok }` |
 | GET | `/api/admin/orders` | `status, q` | `{ orders[] }` |
 | GET / PATCH | `/api/admin/orders/:id` | `{ status?, carrier?, tracking?, note? }` | `{ order }`; a status change logs an `order_events` row |
 | GET | `/api/admin/customers` | — | `{ customers[] }` with orders and spend |
@@ -111,6 +124,11 @@ Catalog, dealer and settings writes call `revalidateTag(…, { expire: 0 })`, so
 | `data/settings.ts` | `getSettings` (cached, tag `settings`), `shippingFor`, `defaultSettings` | `/api/settings`, `/api/admin/settings`, `createOrder` |
 | `data/orders.ts` | `orderInput`, `createOrder`, `getOrderById`, `listOrdersForUser`, `listOrdersAdmin`, `orderUpdate`, `updateOrderAdmin`, `rowToOrder` | `/api/orders*`, `/api/admin/orders*`, `/api/admin/stats` |
 | `data/admin.ts` | `productInput`, `listProductsAdmin`, `getProductAdmin`, `createProduct`, `updateProduct`, `deleteProduct`, `dealerInput`, `listDealersAdmin`, `createDealer`, `updateDealer`, `deleteDealer`, `listCustomers`, `setRole`, `getStats`, `settingsInput`, `saveSettings` | `/api/admin/*` |
+| `data/articles.ts` | `getLearn` (`"use cache"`, tag `articles`), `getActivePillars`, `getArticles`, `getArticle`, `getAuthor`, `getRelatedArticles`, `getGuidesForProduct`, `getGuidesForCategory`, `articlePath`, `readingMinutes`, `rowToArticle` | `/learn/*`, `/authors/*`, product and category pages, home, sitemap |
+| `data/admin-articles.ts` | `articleInput`, `listArticlesAdmin`, `listAuthorsAdmin`, `getArticleAdmin`, `createArticle`, `updateArticle` (moves `updated_at` only on content changes), `deleteArticle` | `/api/admin/articles*` |
+| `learn.ts` | `pillars`, `authors`, `builtinArticles` (seed source and demo fallback) | data layer, admin, `db:seed` |
+| `seo.ts` | `absolute`, `imageUrl` (Cloudinary, 1200×630 share cards), `productTitle`, `productDescription`, `productAlt`, `clip`, and the JSON-LD builders `organizationLd`, `websiteLd`, `productLd`, `breadcrumbLd`, `itemListLd`, `ldScript` | pages, layout, sitemap |
+| `markdown.ts` | `renderMarkdown` (safe, server-side; HTML is escaped), `markdownText` | guide pages, admin preview |
 | `data/demo-admin.ts` | `demoProducts`, `demoAdminOrders`, `demoAdminDealers`, `demoStats` | `/api/admin/*` in demo mode |
 | `auth.ts` | `getViewer`, `syncAdminRole` (ADMIN_EMAILS), `adminGate` | auth and admin routes |
 | `api.ts` | `ok`, `fail`, `notConnected`, `body(req, zod)`, `admin()`, `adminWrite()` | all route handlers |
@@ -131,6 +149,10 @@ Catalog, dealer and settings writes call `revalidateTag(…, { expire: 0 })`, so
 | `orders`, `order_items`, `order_events` | orders, item snapshots, status timeline | own or admin read · writes via service role |
 | `wishlists` | saved products per user | own only |
 | `settings` | store, shipping and preview settings | public read · admin write |
+| `authors` (0002) | guide writers and reviewers | public read · admin write |
+| `articles` (0002) | `/learn` guides: Markdown body, sources, changelog, related products, draft/published | published rows public · admin all |
+
+`0002_seo_learn.sql` also adds the `summary`, `meta_title`, `image_alt`, `mpn` and `gtin` columns to `products` and `meta_title`, `meta_description` and `intro` to `categories`. It replaces the products update trigger so that `updated_at`, the sitemap's lastmod, moves only on content edits, not on every stock decrement.
 
 Functions:
 

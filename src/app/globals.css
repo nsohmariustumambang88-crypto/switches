@@ -205,6 +205,126 @@ html[data-splash="seen"] [data-splash-root] {
   display: none;
 }
 
+/* Guide body (/learn): a reading column set in the poster's ink and greys.
+   Rendered from Markdown on the server (src/lib/markdown.ts). */
+.guide-prose {
+  font-size: 1.0625rem;
+  line-height: 1.7;
+  color: var(--ink);
+  max-width: 42rem;
+}
+.guide-prose > * + * {
+  margin-top: 1.1em;
+}
+.guide-prose h2 {
+  margin-top: 2.4em;
+  padding-top: 0.9em;
+  border-top: 3px solid var(--ink);
+  font-size: clamp(1.5rem, 3.4vw, 2rem);
+  line-height: 1.05;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  scroll-margin-top: 6rem;
+}
+.guide-prose h3 {
+  margin-top: 1.8em;
+  font-size: 1.1875rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  scroll-margin-top: 6rem;
+}
+.guide-prose h2 + *,
+.guide-prose h3 + * {
+  margin-top: 0.6em;
+}
+.guide-prose > :first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+.guide-prose a {
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+.guide-prose a:hover {
+  text-decoration-color: var(--ink-2);
+}
+.guide-prose strong {
+  font-weight: 800;
+}
+.guide-prose ul,
+.guide-prose ol {
+  padding-left: 1.25em;
+}
+.guide-prose ul {
+  list-style: square;
+}
+.guide-prose ol {
+  list-style: decimal;
+}
+.guide-prose li + li {
+  margin-top: 0.45em;
+}
+.guide-prose li::marker {
+  color: var(--ink-2);
+  font-weight: 700;
+}
+.guide-prose code {
+  font-size: 0.9em;
+  background: var(--panel);
+  padding: 0.1em 0.35em;
+  border-radius: 3px;
+}
+.guide-prose hr {
+  border: 0;
+  border-top: 1px solid color-mix(in oklab, var(--ink) 18%, transparent);
+  margin: 2.5em 0;
+}
+.guide-prose .callout {
+  border-left: 4px solid var(--ink);
+  background: var(--surface);
+  padding: 1rem 1.25rem;
+  border-radius: 0 4px 4px 0;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+.guide-prose .table-wrap {
+  overflow-x: auto;
+  margin-left: -1rem;
+  margin-right: -1rem;
+  padding: 0 1rem;
+}
+.guide-prose table {
+  width: 100%;
+  min-width: 32rem;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  font-variant-numeric: tabular-nums;
+}
+.guide-prose thead th {
+  text-align: left;
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 800;
+  border-bottom: 3px solid var(--ink);
+  padding: 0.5rem 0.75rem 0.5rem 0;
+}
+.guide-prose tbody th,
+.guide-prose tbody td {
+  text-align: left;
+  vertical-align: top;
+  padding: 0.6rem 0.75rem 0.6rem 0;
+  border-bottom: 1px solid color-mix(in oklab, var(--ink) 14%, transparent);
+}
+.guide-prose tbody th {
+  font-weight: 700;
+  color: var(--ink-2);
+}
+
 /* Bottom tab bar clearance on phones. */
 .pb-tabbar {
   padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px) + 1.5rem);

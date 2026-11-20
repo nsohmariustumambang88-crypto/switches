@@ -10,7 +10,7 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: PageProps<"/orders/[id]">): Promise<Metadata> {
   const { id } = await params;
-  return { title: `Order #${id}` };
+  return { title: `Order #${id}`, robots: { index: false, follow: false } };
 }
 
 /** URL params resolve inside Suspense so navigations show the skeleton instantly. */

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   ArrowUpRight,
+  BookOpen,
   Cog,
   Image as ImageIcon,
   LayoutDashboard,
@@ -23,6 +24,7 @@ export const adminNav = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/admin/orders", label: "Orders", icon: Package },
   { href: "/admin/products", label: "Products", icon: Tags },
+  { href: "/admin/learn", label: "Learn", icon: BookOpen },
   { href: "/admin/customers", label: "Customers", icon: Users },
   { href: "/admin/dealers", label: "FFL dealers", icon: Store },
   { href: "/admin/media", label: "Media", icon: ImageIcon },

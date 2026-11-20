@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { img } from "@/config/site";
+import { img, site } from "@/config/site";
 import { Minus, Plus, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { categories, type CategoryId, type Product } from "@/lib/catalog";
@@ -28,6 +28,11 @@ type Form = {
   figureValue: string;
   strip: string;
   description: string;
+  summary: string;
+  metaTitle: string;
+  imageAlt: string;
+  mpn: string;
+  gtin: string;
   notice: string;
   ffl: boolean;
   trending: boolean;
@@ -37,6 +42,30 @@ type Form = {
   rating: number;
   reviews: number;
 };
+
+/** "120 / 155 — hint" with the count turning red past the limit. */
+export function Count({ n, max, text }: { n: number; max: number; text?: string }) {
+  return (
+    <>
+      <span className={n > max ? "font-bold text-destructive" : n ? "font-semibold text-ink" : undefined}>
+        {n} / {max}
+      </span>
+      {text ? ` — ${text}` : null}
+    </>
+  );
+}
+
+/** Approximate Google result for the current title and snippet. */
+export function SnippetPreview({ title, slug, text, path = "product" }: { title: string; slug: string; text: string; path?: string }) {
+  const clip = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1).trimEnd() + "…" : s);
+  return (
+    <div className="rounded-lg border border-ink/15 bg-surface p-4" aria-label="Search result preview">
+      <p className="text-xs text-ink-2">{`yourstore.com › ${path} › ${slug || "…"}`}</p>
+      <p className="mt-1 text-[1.0625rem] leading-snug font-semibold text-[#1a0dab]">{clip(`${title} — ${site.name}`, 62)}</p>
+      <p className="mt-1 text-sm leading-relaxed text-ink-2">{clip(text.replace(/\s+/g, " "), 158) || "Add a short description."}</p>
+    </div>
+  );
+}
 
 const slugify = (s: string) =>
   s.toLowerCase().replace(/[″"']/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
@@ -58,6 +87,11 @@ function fromProduct(p?: Product): Form {
     figureValue: p?.figure.value ?? "",
     strip: p?.strip.join(", ") ?? "",
     description: p?.description ?? "",
+    summary: p?.summary ?? "",
+    metaTitle: p?.metaTitle ?? "",
+    imageAlt: p?.imageAlt ?? "",
+    mpn: p?.mpn ?? "",
+    gtin: p?.gtin ?? "",
     notice: p?.notice ?? "",
     ffl: p?.ffl ?? false,
     trending: p?.trending ?? false,
@@ -103,6 +137,11 @@ export function ProductForm({ product, demo }: { product?: Product; demo?: boole
       figureValue: f.figureValue,
       strip: f.strip.split(",").map((s) => s.trim()).filter(Boolean),
       description: f.description,
+      summary: f.summary || null,
+      metaTitle: f.metaTitle || null,
+      imageAlt: f.imageAlt || null,
+      mpn: f.mpn || null,
+      gtin: f.gtin.replace(/\D/g, "") || null,
       specs: f.specs.filter(([k, v]) => k.trim() && v.trim()),
       ffl: f.ffl,
       notice: f.notice || null,
@@ -240,8 +279,8 @@ export function ProductForm({ product, demo }: { product?: Product; demo?: boole
         </Section>
 
         <Section title="Content">
-          <Field label="Description" htmlFor="p-desc">
-            <TextArea id="p-desc" value={f.description} onChange={(e) => set("description", e.target.value)} />
+          <Field label="Description" htmlFor="p-desc" hint="Shown on the product page. Leave a blank line between paragraphs.">
+            <TextArea id="p-desc" className="min-h-40" value={f.description} onChange={(e) => set("description", e.target.value)} />
           </Field>
           <div className="mt-6">
             <p className="mb-2 text-xs font-bold text-ink-2">Specifications</p>
@@ -261,6 +300,29 @@ export function ProductForm({ product, demo }: { product?: Product; demo?: boole
           <Field label="Compliance notice" htmlFor="p-notice" className="mt-6" hint="Shown on the product page and in the cart (FFL, state restrictions, NFA…).">
             <TextArea id="p-notice" value={f.notice} onChange={(e) => set("notice", e.target.value)} />
           </Field>
+        </Section>
+
+        <Section title="Search & sharing">
+          <div className="grid gap-4">
+            <Field label="Short description" htmlFor="p-sum" hint={<Count n={f.summary.length} max={155} text="The Google snippet and share text. Lead with the model, caliber and the one fact buyers search for." />}>
+              <TextArea id="p-sum" value={f.summary} maxLength={200} onChange={(e) => set("summary", e.target.value)} />
+            </Field>
+            <Field label="Search title" htmlFor="p-mt" hint={<Count n={f.metaTitle.length} max={50} text="Optional. The store name is added after it." />}>
+              <TextInput id="p-mt" value={f.metaTitle} maxLength={80} placeholder={f.name} onChange={(e) => set("metaTitle", e.target.value)} />
+            </Field>
+            <SnippetPreview title={f.metaTitle || f.name} slug={f.slug} text={f.summary || f.description} />
+            <Field label="Image alt text" htmlFor="p-alt" hint="Describe the photo: brand, model, finish and angle.">
+              <TextInput id="p-alt" value={f.imageAlt} maxLength={200} placeholder={`${f.name} ${f.caliber}`.trim()} onChange={(e) => set("imageAlt", e.target.value)} />
+            </Field>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Manufacturer part # (MPN)" htmlFor="p-mpn" hint="From the maker's site or box.">
+                <TextInput id="p-mpn" value={f.mpn} maxLength={60} onChange={(e) => set("mpn", e.target.value)} />
+              </Field>
+              <Field label="UPC / GTIN" htmlFor="p-gtin" hint="8, 12, 13 or 14 digits from the box barcode.">
+                <TextInput id="p-gtin" inputMode="numeric" value={f.gtin} maxLength={18} onChange={(e) => set("gtin", e.target.value)} />
+              </Field>
+            </div>
+          </div>
         </Section>
       </div>
 

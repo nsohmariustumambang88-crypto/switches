@@ -25,6 +25,11 @@ export type ProductRow = {
   figure_value: string;
   strip: string[];
   description: string;
+  summary?: string | null;
+  meta_title?: string | null;
+  image_alt?: string | null;
+  mpn?: string | null;
+  gtin?: string | null;
   specs: [string, string][];
   ffl: boolean;
   notice: string | null;
@@ -32,6 +37,7 @@ export type ProductRow = {
   active: boolean;
   stock: number;
   sort: number;
+  updated_at?: string | null;
   product_packs?: { rounds: number; price: number | string }[];
 };
 
@@ -58,6 +64,11 @@ export function rowToProduct(r: ProductRow): Product {
     figure: { label: r.figure_label, value: r.figure_value },
     strip: r.strip ?? [],
     description: r.description,
+    summary: r.summary || undefined,
+    metaTitle: r.meta_title || undefined,
+    imageAlt: r.image_alt || undefined,
+    mpn: r.mpn || undefined,
+    gtin: r.gtin || undefined,
     specs: r.specs ?? [],
     packs: packs.length ? packs : undefined,
     ffl: r.ffl,
@@ -65,6 +76,7 @@ export function rowToProduct(r: ProductRow): Product {
     trending: r.trending,
     active: r.active,
     stock: r.stock,
+    updatedAt: r.updated_at ?? undefined,
   };
 }
 
@@ -94,6 +106,9 @@ export async function getCatalog(): Promise<Catalog> {
       name: c.name,
       short: c.short,
       blurb: c.blurb,
+      metaTitle: c.meta_title || undefined,
+      metaDescription: c.meta_description || undefined,
+      intro: c.intro || undefined,
       types: (types.data ?? [])
         .filter((t) => t.category_id === c.id)
         .map((t) => ({ id: t.id, name: t.name })),

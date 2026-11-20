@@ -54,6 +54,23 @@ export function ListingSkeleton() {
   );
 }
 
+export function GuideSkeleton() {
+  return (
+    <div aria-busy="true" aria-label="Loading guide" className="mx-auto max-w-[90rem] px-4 md:px-6 lg:px-10">
+      <div className="h-14 md:hidden" />
+      <div className={`${block} mt-2 h-4 w-40 md:mt-12`} />
+      <div className={`${block} mt-5 h-12 w-11/12 max-w-3xl md:h-20`} />
+      <div className={`${block} mt-3 h-12 w-2/3 max-w-2xl md:h-20`} />
+      <div className={`${block} mt-6 h-4 w-64`} />
+      <div className="mt-10 max-w-[42rem] space-y-3">
+        {Array.from({ length: 7 }).map((_, i) => (
+          <div key={i} className={`${block} h-4`} style={{ width: `${[100, 96, 88, 100, 92, 70, 84][i]}%` }} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function TrackSkeleton() {
   return (
     <div aria-busy="true" aria-label="Loading order" className="mx-auto max-w-[90rem] px-4 md:px-6 lg:px-10">

@@ -7,7 +7,7 @@ export function SiteFooter() {
   return (
     <footer className="mt-20 border-t border-ink/15 md:mt-28">
       <div className="mx-auto grid max-w-[90rem] gap-10 px-4 py-12 md:grid-cols-12 md:px-6 lg:px-10">
-        <div className="md:col-span-5">
+        <div className="md:col-span-3">
           <p className="max-w-sm text-sm leading-relaxed text-ink-2">{site.description}</p>
           <p className="mt-6 text-sm font-bold">{site.supportEmail}</p>
           <p className="text-sm text-ink-2">{site.supportPhone}</p>
@@ -22,6 +22,16 @@ export function SiteFooter() {
                 </Link>
               </li>
             ))}
+          </ul>
+        </nav>
+        <nav aria-label="Guides" className="md:col-span-2">
+          <p className="label-caps text-ink-2">Guides</p>
+          <ul className="mt-3 space-y-2 text-sm font-semibold">
+            <li><Link href="/learn" className="hover:underline">All guides</Link></li>
+            <li><Link href="/learn/buying-online/how-buying-a-handgun-online-works" className="hover:underline">How FFL transfers work</Link></li>
+            <li><Link href="/learn/handguns/glock-gen6-vs-v-vs-gen5" className="hover:underline">Glock Gen6 vs V vs Gen5</Link></li>
+            <li><Link href="/learn/triggers/what-is-a-forced-reset-trigger" className="hover:underline">What is an FRT?</Link></li>
+            <li><Link href="/learn/reference/glossary" className="hover:underline">Glossary</Link></li>
           </ul>
         </nav>
         <nav aria-label="Account" className="md:col-span-2">

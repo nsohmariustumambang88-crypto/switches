@@ -12,6 +12,11 @@ import { ProductImage } from "@/components/product-card";
 import { ProductRail, SectionHead } from "@/components/product-lists";
 import { ShareButton } from "./share-button";
 import { ProductBuy } from "./product-buy";
+import Link from "next/link";
+import { JsonLd } from "@/components/json-ld";
+import { RelatedGuides } from "@/components/learn/learn-teaser";
+import { getGuidesForProduct } from "@/lib/data/articles";
+import { breadcrumbLd, imageUrl, productAlt, productDescription, productLd, productTitle } from "@/lib/seo";
 import {
   Accordion,
   AccordionContent,
@@ -26,7 +31,21 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: PageProps<"/product/[slug]">): Promise<Metadata> {
   const { slug } = await params;
   const p = await getProduct(slug);
-  return p ? { title: p.name, description: p.description } : {};
+  if (!p) return {};
+  const path = `/product/${p.slug}`;
+  const description = productDescription(p);
+  return {
+    title: productTitle(p),
+    description,
+    alternates: { canonical: path },
+    openGraph: {
+      url: path,
+      title: p.name,
+      description,
+      images: [{ url: imageUrl(p.image, { og: true }), width: 1200, height: 630, alt: productAlt(p) }],
+    },
+    twitter: { card: "summary_large_image", title: p.name, description },
+  };
 }
 
 /** URL params resolve inside Suspense so navigations show the skeleton instantly. */
@@ -44,7 +63,7 @@ async function ProductContent({ slug }: { slug: string }) {
   const p = await getProduct(slug);
   if (!p) notFound();
   const cat = (await getCategory(p.category))!;
-  const related = await getRelated(p);
+  const [related, guides] = await Promise.all([getRelated(p), getGuidesForProduct(p, 3)]);
   const off = p.compareAt ? Math.round((1 - p.price / p.compareAt) * 100) : 0;
   const Notice = p.ffl ? ShieldCheck : TriangleAlert;
   const len = p.figure.value.length;
@@ -104,12 +123,27 @@ async function ProductContent({ slug }: { slug: string }) {
         </div>
 
         <div className="px-4 pt-6 md:col-span-5 md:px-0 md:pt-0">
+          <nav aria-label="Breadcrumb" className="mb-3 text-xs font-semibold text-ink-2">
+            <Link href={`/shop/${cat.id}`} className="hover:underline">{cat.name}</Link>
+            {p.category === "handguns" || p.category === "ammunition" ? (
+              <>
+                {" "}<span aria-hidden="true">/</span>{" "}
+                <Link href={`/shop/${cat.id}?type=${p.type}`} className="hover:underline">
+                  {cat.types.find((t) => t.id === p.type)?.name ?? p.type}
+                </Link>
+              </>
+            ) : null}
+          </nav>
           <h1 className="font-display text-[2.375rem] leading-[0.92] md:text-[3.25rem]">{p.name}</h1>
           <Rating value={p.rating} count={p.reviews} className="mt-4 text-sm" />
 
           <ProductBuy product={p} />
 
-          <p className="mt-6 max-w-prose text-[0.9375rem] leading-relaxed text-ink-2">{p.description}</p>
+          <div className="mt-6 max-w-prose space-y-3 text-[0.9375rem] leading-relaxed text-ink-2">
+            {p.description.split(/\n\s*\n/).map((para, i) => (
+              <p key={i}>{para.trim()}</p>
+            ))}
+          </div>
           <SpecStrip items={p.strip} className="mt-4" />
 
           {p.notice && (
@@ -171,8 +205,20 @@ async function ProductContent({ slug }: { slug: string }) {
         <ProductRail products={related} />
       </section>
 
+      <RelatedGuides articles={guides} className="mt-16 md:mt-24" />
+
       <RecentlyViewed exclude={p.slug} title="Recently viewed" />
       <RecordView product={p} />
+      <JsonLd
+        data={[
+          productLd(p, cat),
+          breadcrumbLd([
+            { name: "Home", path: "/" },
+            { name: cat.name, path: `/shop/${cat.id}` },
+            { name: p.name, path: `/product/${p.slug}` },
+          ]),
+        ]}
+      />
     </>
   );
 }

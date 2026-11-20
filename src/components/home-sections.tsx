@@ -12,7 +12,7 @@ import { AddToCart } from "@/components/add-to-cart";
 import { ProductImage } from "@/components/product-card";
 import { Reveal } from "@/components/reveal";
 
-const FEATURED = "glock-17-gen5";
+const FEATURED = "glock-19-gen6";
 
 /** The poster: the reference's grey print, re-set around one product. */
 export async function PosterHero() {
@@ -29,7 +29,7 @@ export async function PosterHero() {
         />
         <div className="col-span-12 mt-3 flex items-end justify-between gap-4 md:col-span-4 md:mt-0 md:block md:pb-3 md:text-right">
           <p className="max-w-[15rem] text-[0.8125rem] leading-snug text-ink-2 md:ml-auto md:text-sm">
-            Full-size 9mm. Seventeen rounds, a 4.49″ barrel and an ambidextrous slide stop.
+            The new Gen6 compact. Fifteen rounds, an optic-ready slide and a flat-faced trigger.
           </p>
           <p className="shrink-0 text-right text-[0.8125rem] leading-tight font-extrabold uppercase md:mt-4 md:text-base">
             Ships to
@@ -93,7 +93,7 @@ export async function PosterHero() {
 const DEPT_POSTERS = {
   handguns: { word: "Handguns", image: "glock-19-gen5-fde", span: "col-span-6 row-span-2", size: "text-[clamp(4rem,6.5vw,6.5rem)]", box: "inset-x-10 top-16 bottom-36" },
   ammunition: { word: "Ammo", image: "hornady-critical-defense-9mm", span: "col-span-6", size: "text-[clamp(3.5rem,5vw,5rem)]", box: "left-[46%] right-16 top-6 bottom-6" },
-  triggers: { word: "Triggers", image: "frt-15l2", span: "col-span-3", size: "text-[clamp(2.25rem,3vw,3rem)]", box: "inset-x-8 top-14 bottom-20" },
+  triggers: { word: "Triggers", image: "frt-15l3", span: "col-span-3", size: "text-[clamp(2.25rem,3vw,3rem)]", box: "inset-x-8 top-14 bottom-20" },
   parts: { word: "Parts", image: "recover-tactical-p-ix", span: "col-span-3", size: "text-[clamp(2.25rem,3vw,3rem)]", box: "inset-x-8 top-14 bottom-20" },
 } as const;
 

@@ -60,6 +60,9 @@ export function Rating({
   count?: number;
   className?: string;
 }) {
+  if (!value || count === 0) {
+    return <span className={cn("inline-flex items-center text-xs font-semibold text-ink-2", className)}>New · no reviews yet</span>;
+  }
   return (
     <span className={cn("inline-flex items-center gap-1 text-xs font-semibold tabular-nums", className)}>
       <Star className="size-3.5" fill="currentColor" strokeWidth={0} aria-hidden="true" />

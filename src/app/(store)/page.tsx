@@ -4,6 +4,16 @@ import { AmmoBanner, CategoryRow, FflSteps, PosterHero } from "@/components/home
 import { ProductRail, SectionHead } from "@/components/product-lists";
 import { getProducts, getTrending } from "@/lib/data/catalog";
 import { RecentlyViewed } from "@/components/recently-viewed";
+import type { Metadata } from "next";
+import { site } from "@/config/site";
+import { LearnTeaser } from "@/components/learn/learn-teaser";
+
+export const metadata: Metadata = {
+  title: { absolute: `${site.name} — Glock & SIG Handguns, 9mm Ammo, FRT Triggers` },
+  description: site.description,
+  alternates: { canonical: "/" },
+  openGraph: { url: "/" },
+};
 
 export default async function Home() {
   const [trending, triggers] = await Promise.all([getTrending(8), getProducts("triggers")]);
@@ -39,6 +49,8 @@ export default async function Home() {
       <div className="mt-16 md:mt-28">
         <FflSteps />
       </div>
+
+      <LearnTeaser className="mt-16 md:mt-28" />
     </>
   );
 }

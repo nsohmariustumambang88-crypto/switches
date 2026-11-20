@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { img } from "@/config/site";
 import { money } from "@/lib/format";
 import type { Product } from "@/lib/catalog";
+import { productAlt } from "@/lib/seo";
 import { WishButton, Rating } from "@/components/product-bits";
 
 export function ProductImage({
@@ -26,7 +27,7 @@ export function ProductImage({
       <span className="multiply absolute inset-0">
         <Image
           src={img(product.image)}
-          alt={product.name}
+          alt={productAlt(product)}
           fill
           sizes={sizes}
           priority={priority}
@@ -44,7 +45,7 @@ export function ProductImage({
   return (
     <Image
       src={img(product.image)}
-      alt={product.name}
+      alt={productAlt(product)}
       fill
       sizes={sizes}
       priority={priority}
