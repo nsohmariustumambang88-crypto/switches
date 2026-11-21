@@ -174,4 +174,5 @@ Functions:
 | `npm run db:migrate` | applies `supabase/migrations/*.sql` using `SUPABASE_DB_URL` |
 | `npm run db:seed` | upserts categories, products, packs, sample dealers and settings from `src/lib/catalog.ts` |
 | `npm run db:make-admin -- you@example.com` | promotes an existing account to admin |
-| `npm run cloudinary:upload` | uploads `public/catalog/**` to `storefront/catalog/` |
+| `npm run cloudinary:upload` | uploads `public/catalog/**` to `storefront/catalog/` (pass words to upload only matching files) |
+| `npm run seo:audit -- <url>` | crawls the sitemap and fails on SEO problems (titles, snippets, canonicals, H1, JSON-LD, alt text, duplicates, broken links, images) |
