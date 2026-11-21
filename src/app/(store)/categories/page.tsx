@@ -13,7 +13,7 @@ import { Reveal } from "@/components/reveal";
 export const metadata: Metadata = {
   title: "Shop by Category: Handguns, Ammo, Triggers & Parts",
   description:
-    "Browse full-size, compact and carry pistols, handgun, rifle, shotgun and rimfire ammunition, AR-15 forced reset triggers and parts — all from one licensed dealer.",
+    "Browse full-size, compact and carry pistols, handgun, rifle, shotgun and rimfire ammo, AR-15 forced reset triggers and parts from one licensed dealer.",
   alternates: { canonical: "/categories" },
   openGraph: { url: "/categories" },
 };

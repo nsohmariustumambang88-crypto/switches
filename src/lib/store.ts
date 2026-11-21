@@ -3,6 +3,7 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { getProduct as builtinProduct, type Order, type Product } from "@/lib/catalog";
+import { DEFAULT_SHIPPING, shippingCost, type Delivery } from "@/lib/delivery";
 
 export type CartLine = {
   key: string;
@@ -23,6 +24,7 @@ export type SavedCheckout = {
   email: string;
   dealerId: string;
   pay: "card" | "ach";
+  delivery?: Delivery;
 };
 
 export type ClientViewer = {
@@ -174,12 +176,12 @@ export function cartCount(cart: CartLine[]) {
   return cart.reduce((n, l) => n + l.qty, 0);
 }
 
-export const SHIPPING = { freeOver: 199, flat: 14.95 }; // mirrors the default server setting
+export const SHIPPING = DEFAULT_SHIPPING; // mirrors the default server setting; the server prices the order
 
-export function totals(cart: CartLine[], find: (slug: string) => Product | undefined = lookupProduct) {
+export function totals(cart: CartLine[], find: (slug: string) => Product | undefined = lookupProduct, delivery: Delivery = "standard") {
   const lines = cart.filter((l) => l.selected);
   const subtotal = lines.reduce((n, l) => n + linePrice(l, find) * l.qty, 0);
   const hasFirearm = lines.some((l) => find(l.slug)?.ffl);
-  const shipping = subtotal === 0 || subtotal >= SHIPPING.freeOver ? 0 : SHIPPING.flat;
+  const shipping = shippingCost(subtotal, SHIPPING, delivery);
   return { lines, subtotal, shipping, total: subtotal + shipping, hasFirearm };
 }

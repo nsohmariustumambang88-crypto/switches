@@ -116,7 +116,7 @@ export function CartView() {
                     <dd className="font-semibold tabular-nums">{money(subtotal)}</dd>
                   </div>
                   <div className="flex justify-between">
-                    <dt className="text-ink-2">Shipping</dt>
+                    <dt className="text-ink-2">Standard shipping</dt>
                     <dd className="font-semibold tabular-nums">{shipping === 0 ? (subtotal ? "Free" : money(0)) : money(shipping)}</dd>
                   </div>
                   <div className="flex justify-between border-t border-ink pt-3 text-lg">
@@ -125,7 +125,7 @@ export function CartView() {
                   </div>
                 </dl>
                 <p className="mt-2 text-xs text-ink-2">
-                  Taxes and any FFL transfer fee are calculated at checkout.
+                  Discreet packaging on every order. Fast-track delivery, taxes and any FFL transfer fee are shown at checkout.
                   {site.preview && " Preview totals: prices and the shipping rule are placeholders."}
                 </p>
                 <div className="fixed inset-x-0 bottom-0 z-30 bg-ground/95 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur-md md:static md:mt-6 md:bg-transparent md:p-0 md:backdrop-blur-none">

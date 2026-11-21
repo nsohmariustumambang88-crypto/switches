@@ -58,6 +58,15 @@ Hosting notes:
 - Supabase's free plan pauses a project after a week with no activity. Wake it from the dashboard; nothing here pings it.
 - Vercel's Hobby (free) plan is for non-commercial use. A client's live store needs the Pro plan or another host.
 
+## Delivery
+
+There are two speeds, set in Admin → Settings → Shipping (`src/lib/delivery.ts` holds the defaults):
+
+- **Standard (discreet):** a plain, unbranded box, arriving within 3 days. It's free over the threshold and a flat rate below it.
+- **Fast-track:** express delivery for a flat fee, in the same plain packaging.
+
+The server prices every order (`createOrder`), and the cart and checkout show an estimate. Firearms ship to the buyer's chosen FFL dealer at either speed. Ammunition, triggers, parts and accessories ship to the buyer's address where state law allows. The store ships within the **United States only**: firearms, ammunition, triggers and most parts are export-controlled. `/shipping` explains this and collects emails from international visitors (`POST /api/subscribe` → the `subscribers` table).
+
 ## Search engines and guides
 
 Set `NEXT_PUBLIC_SITE_URL` to the live domain (for example `https://www.yourstore.com`, no trailing slash). Canonical URLs, the sitemap and structured data all use it.

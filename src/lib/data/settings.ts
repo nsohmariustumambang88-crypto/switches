@@ -2,12 +2,13 @@ import { cacheLife, cacheTag } from "next/cache";
 import { hasSupabase } from "@/lib/supabase/config";
 import { publicClient } from "@/lib/supabase/clients";
 import { site } from "@/config/site";
+import { DEFAULT_SHIPPING, shippingCost, type Delivery, type ShippingSettings } from "@/lib/delivery";
 
 export const SETTINGS_TAG = "settings";
 
 export type StoreSettings = {
   store: { name: string; tagline: string; supportEmail: string; supportPhone: string };
-  shipping: { freeOver: number; flat: number };
+  shipping: ShippingSettings;
   preview: { enabled: boolean };
 };
 
@@ -18,7 +19,7 @@ export const defaultSettings: StoreSettings = {
     supportEmail: site.supportEmail,
     supportPhone: site.supportPhone,
   },
-  shipping: { freeOver: 199, flat: 14.95 },
+  shipping: DEFAULT_SHIPPING,
   preview: { enabled: site.preview },
 };
 
@@ -43,6 +44,7 @@ export async function getSettings(): Promise<StoreSettings> {
   }
 }
 
-export function shippingFor(subtotal: number, s: StoreSettings["shipping"]) {
-  return subtotal === 0 || subtotal >= s.freeOver ? 0 : s.flat;
+/** Authoritative shipping price (server). */
+export function shippingFor(subtotal: number, s: StoreSettings["shipping"], d: Delivery = "standard") {
+  return shippingCost(subtotal, s, d);
 }

@@ -2,13 +2,14 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, CreditCard, Landmark, Lock, MapPin, Store, TriangleAlert } from "lucide-react";
+import { Check, CreditCard, Landmark, Lock, MapPin, Package, Store, TriangleAlert, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { dealerAddress, demoDealers, sortDealersByZip, type Dealer, type Order } from "@/lib/catalog";
 import { US_STATES, formatCard, formatExpiry, stateFromZip } from "@/lib/us";
 import { money } from "@/lib/format";
-import { linePrice, totals, useProductLookup, useStore } from "@/lib/store";
+import { SHIPPING, linePrice, totals, useProductLookup, useStore } from "@/lib/store";
+import { deliveryName, deliveryOptions, type Delivery } from "@/lib/delivery";
 import { gsap, useGSAP, prefersReducedMotion } from "@/lib/gsap";
 import { site } from "@/config/site";
 import { PageBar } from "@/components/page-bar";
@@ -43,7 +44,8 @@ export function CheckoutView() {
   const placeOrder = useStore((s) => s.placeOrder);
   const clearSelected = useStore((s) => s.removeSelected);
   const find = useProductLookup();
-  const { lines, subtotal, shipping, total, hasFirearm } = totals(cart, find);
+  const [delivery, setDelivery] = useState<Delivery>("standard");
+  const { lines, subtotal, shipping, total, hasFirearm } = totals(cart, find, delivery);
 
   const saved = useStore((s) => s.savedCheckout);
   const saveCheckout = useStore((s) => s.saveCheckout);
@@ -74,6 +76,7 @@ export function CheckoutView() {
       setEmail(saved.email);
       setDealer(saved.dealerId);
       setPay(saved.pay);
+      if (saved.delivery) setDelivery(saved.delivery);
       if (saved.name && saved.line1 && saved.city && saved.state && saved.zip) setEditing(false);
     } else if (viewer?.fullName) {
       setAddr((a) => ({ ...a, name: viewer.fullName ?? "" }));
@@ -151,6 +154,7 @@ export function CheckoutView() {
           billing: { ...addr, state: addr.state.toUpperCase(), ...(phone.trim() ? { phone: phone.trim() } : {}) },
           fflDealerId: hasFirearm ? dealer : undefined,
           payment: pay,
+          delivery,
           attested: true,
         }),
       });
@@ -169,6 +173,7 @@ export function CheckoutView() {
           ffl: hasFirearm && ffl ? { name: ffl.name, address: dealerAddress(ffl) } : undefined,
           carrier: "Pending",
           tracking: "—",
+          delivery,
           events: [
             { status: "placed", at: now },
             { status: "shipped", at: null },
@@ -184,7 +189,7 @@ export function CheckoutView() {
       placeOrder(order);
       clearSelected();
       // Remember (or forget) these details on this device for next time.
-      saveCheckout(remember ? { ...addr, phone, email: contactEmail, dealerId: dealer, pay } : null);
+      saveCheckout(remember ? { ...addr, phone, email: contactEmail, dealerId: dealer, pay, delivery } : null);
       toast.success("Order placed", { description: `Order #${order.id}` });
       router.push(`/orders/${order.id}`);
     } catch {
@@ -364,6 +369,43 @@ export function CheckoutView() {
               </>
             )}
 
+            {step === 0 && (
+              <section aria-labelledby="delivery-h" className="mt-8">
+                <h2 id="delivery-h" className="mb-1 text-lg font-extrabold">Delivery</h2>
+                <p className="mb-4 text-sm text-ink-2">
+                  {hasFirearm
+                    ? "Firearms ship to your FFL dealer; everything else ships to your address. Every order ships in a plain box with no store branding."
+                    : "Ships to your address in a plain box with no store branding. United States only."}
+                </p>
+                <RadioGroup value={delivery} onValueChange={(v) => setDelivery(v as Delivery)} className="gap-2">
+                  {deliveryOptions(SHIPPING).map((o) => {
+                    const cost = o.price(subtotal);
+                    const Icon = o.id === "express" ? Zap : Package;
+                    return (
+                      <Label
+                        key={o.id}
+                        className={cn(
+                          "flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors",
+                          delivery === o.id ? "border-ink bg-surface-2" : "border-transparent bg-surface hover:bg-surface-2"
+                        )}
+                      >
+                        <RadioGroupItem value={o.id} className="mt-0.5" />
+                        <Icon className="size-5 shrink-0" />
+                        <span className="min-w-0 flex-1 text-sm leading-snug">
+                          <strong className="block text-[0.9375rem]">{o.name}</strong>
+                          <span className="text-ink-2">{o.detail}</span>
+                        </span>
+                        <span className="shrink-0 text-right text-sm font-bold tabular-nums">
+                          {cost ? money(cost) : "Free"}
+                          {o.note && cost > 0 && <span className="block text-xs font-normal text-ink-2">{o.note}</span>}
+                        </span>
+                      </Label>
+                    );
+                  })}
+                </RadioGroup>
+              </section>
+            )}
+
             {step === 1 && (
               <section aria-labelledby="pay-h">
                 <h2 id="pay-h" className="mb-4 text-lg font-extrabold">Payment method</h2>
@@ -436,6 +478,12 @@ export function CheckoutView() {
                     <dt className="label-caps text-ink-2">Payment</dt>
                     <dd className="mt-2">{pay === "card" ? "Credit / debit card" : "Bank transfer (ACH)"}</dd>
                   </div>
+                  <div className="rounded-lg bg-surface p-4">
+                    <dt className="label-caps text-ink-2">Delivery</dt>
+                    <dd className="mt-2">
+                      {deliveryName(delivery)} · {shipping ? money(shipping) : "Free"}
+                    </dd>
+                  </div>
                 </dl>
                 <label className="flex cursor-pointer items-start gap-3 rounded-lg bg-surface p-4 text-sm leading-relaxed">
                   <Checkbox checked={attest} onCheckedChange={(c) => setAttest(!!c)} className="mt-0.5" />
@@ -481,7 +529,7 @@ export function CheckoutView() {
               </ul>
               <dl className="mt-4 space-y-2 text-sm">
                 <div className="flex justify-between"><dt className="text-ink-2">Subtotal</dt><dd className="tabular-nums">{money(subtotal)}</dd></div>
-                <div className="flex justify-between"><dt className="text-ink-2">Shipping</dt><dd className="tabular-nums">{shipping ? money(shipping) : "Free"}</dd></div>
+                <div className="flex justify-between"><dt className="text-ink-2">Shipping · {deliveryName(delivery)}</dt><dd className="tabular-nums">{shipping ? money(shipping) : "Free"}</dd></div>
                 <div className="flex justify-between border-t border-ink pt-3 text-lg font-extrabold"><dt>Total</dt><dd className="tabular-nums">{money(total)}</dd></div>
               </dl>
               <div className="fixed inset-x-0 bottom-0 z-30 bg-ground/95 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur-md md:static md:mt-6 md:bg-transparent md:p-0 md:backdrop-blur-none">

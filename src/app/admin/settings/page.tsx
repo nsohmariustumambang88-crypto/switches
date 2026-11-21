@@ -27,7 +27,7 @@ function SettingsForm({ initial, demo }: { initial: StoreSettings; demo: boolean
     try {
       await adminRequest("/api/admin/settings", "PUT", {
         ...s,
-        shipping: { freeOver: Number(s.shipping.freeOver), flat: Number(s.shipping.flat) },
+        shipping: { freeOver: Number(s.shipping.freeOver), flat: Number(s.shipping.flat), standardDays: Number(s.shipping.standardDays), express: Number(s.shipping.express), expressDays: Number(s.shipping.expressDays) },
       });
       toast.success("Settings saved");
     } catch (err) {
@@ -54,11 +54,20 @@ function SettingsForm({ initial, demo }: { initial: StoreSettings; demo: boolean
           <Field label="Free shipping over (USD)" htmlFor="s-free">
             <TextInput id="s-free" inputMode="decimal" value={String(s.shipping.freeOver)} onChange={(e) => setS((x) => ({ ...x, shipping: { ...x.shipping, freeOver: e.target.value as unknown as number } }))} />
           </Field>
-          <Field label="Flat rate below that (USD)" htmlFor="s-flat">
+          <Field label="Standard rate below that (USD)" htmlFor="s-flat">
             <TextInput id="s-flat" inputMode="decimal" value={String(s.shipping.flat)} onChange={(e) => setS((x) => ({ ...x, shipping: { ...x.shipping, flat: e.target.value as unknown as number } }))} />
           </Field>
+          <Field label="Standard (discreet): arrives within (days)" htmlFor="s-sdays">
+            <TextInput id="s-sdays" inputMode="numeric" value={String(s.shipping.standardDays)} onChange={(e) => setS((x) => ({ ...x, shipping: { ...x.shipping, standardDays: e.target.value as unknown as number } }))} />
+          </Field>
+          <Field label="Fast-track price (USD)" htmlFor="s-exp" hint="Always charged; not covered by free shipping.">
+            <TextInput id="s-exp" inputMode="decimal" value={String(s.shipping.express)} onChange={(e) => setS((x) => ({ ...x, shipping: { ...x.shipping, express: e.target.value as unknown as number } }))} />
+          </Field>
+          <Field label="Fast-track: arrives within (days)" htmlFor="s-edays">
+            <TextInput id="s-edays" inputMode="numeric" value={String(s.shipping.expressDays)} onChange={(e) => setS((x) => ({ ...x, shipping: { ...x.shipping, expressDays: e.target.value as unknown as number } }))} />
+          </Field>
         </div>
-        <p className="mt-2 text-xs text-ink-2">Orders are charged this rule on the server; the cart shows an estimate.</p>
+        <p className="mt-2 text-xs text-ink-2">Orders are priced on the server with these settings; the cart shows an estimate. Delivery days appear on product pages, the shipping page and in Google&apos;s product data, so keep them achievable. United States only.</p>
       </Section>
       <Section title="Preview">
         <label className="flex cursor-pointer items-start gap-3 text-[0.9375rem] font-medium">

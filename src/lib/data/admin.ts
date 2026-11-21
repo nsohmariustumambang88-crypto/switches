@@ -257,7 +257,13 @@ export const settingsInput = z.object({
     supportEmail: z.string().trim(),
     supportPhone: z.string().trim(),
   }),
-  shipping: z.object({ freeOver: z.number().nonnegative(), flat: z.number().nonnegative() }),
+  shipping: z.object({
+    freeOver: z.number().nonnegative(),
+    flat: z.number().nonnegative(),
+    standardDays: z.number().int().min(1).max(14),
+    express: z.number().nonnegative(),
+    expressDays: z.number().int().min(1).max(14),
+  }),
   preview: z.object({ enabled: z.boolean() }),
 });
 

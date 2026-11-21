@@ -16,6 +16,8 @@ import Link from "next/link";
 import { JsonLd } from "@/components/json-ld";
 import { RelatedGuides } from "@/components/learn/learn-teaser";
 import { getGuidesForProduct } from "@/lib/data/articles";
+import { getSettings } from "@/lib/data/settings";
+import { money } from "@/lib/format";
 import { breadcrumbLd, imageUrl, productAlt, productDescription, productLd, productTitle } from "@/lib/seo";
 import {
   Accordion,
@@ -63,7 +65,8 @@ async function ProductContent({ slug }: { slug: string }) {
   const p = await getProduct(slug);
   if (!p) notFound();
   const cat = (await getCategory(p.category))!;
-  const [related, guides] = await Promise.all([getRelated(p), getGuidesForProduct(p, 3)]);
+  const [related, guides, settings] = await Promise.all([getRelated(p), getGuidesForProduct(p, 3), getSettings()]);
+  const ship = settings.shipping;
   const off = p.compareAt ? Math.round((1 - p.price / p.compareAt) * 100) : 0;
   const Notice = p.ffl ? ShieldCheck : TriangleAlert;
   const len = p.figure.value.length;
@@ -174,18 +177,32 @@ async function ProductContent({ slug }: { slug: string }) {
                 {p.ffl ? "Shipping & FFL transfer" : "Shipping"}
               </AccordionTrigger>
               <AccordionContent className="text-sm leading-relaxed text-ink-2">
-                {p.ffl ? (
+                <div className="space-y-2">
+                  {p.ffl ? (
+                    <p>
+                      Choose a licensed FFL dealer at checkout. We ship to them; you collect the firearm
+                      after completing ATF Form 4473 and the background check. Dealers may charge a
+                      transfer fee.
+                    </p>
+                  ) : (
+                    <p>
+                      Ships to your address in a plain box with no store branding
+                      {p.category === "ammunition" ? ", with an adult signature on delivery" : ""}. Some
+                      states restrict what can ship to them.
+                    </p>
+                  )}
                   <p>
-                    Choose a licensed FFL dealer at checkout. We ship to them; you collect the firearm
-                    after completing ATF Form 4473 and the background check. Dealers may charge a
-                    transfer fee.
+                    <strong className="text-ink">Standard — discreet:</strong> arrives within {ship.standardDays} days, free over{" "}
+                    {money(ship.freeOver)} ({money(ship.flat)} below).{" "}
+                    <strong className="text-ink">Fast-track:</strong> arrives within {ship.expressDays} days, {money(ship.express)}.
                   </p>
-                ) : (
                   <p>
-                    Ships to your address with adult signature where required. Delivery times and
-                    restrictions vary by state.
+                    United States only.{" "}
+                    <Link href="/shipping" className="font-semibold text-ink underline underline-offset-2">
+                      Shipping &amp; delivery
+                    </Link>
                   </p>
-                )}
+                </div>
               </AccordionContent>
             </AccordionItem>
             <AccordionItem value="returns" className="border-ink/15">
@@ -211,7 +228,7 @@ async function ProductContent({ slug }: { slug: string }) {
       <RecordView product={p} />
       <JsonLd
         data={[
-          productLd(p, cat),
+          productLd(p, cat, ship),
           breadcrumbLd([
             { name: "Home", path: "/" },
             { name: cat.name, path: `/shop/${cat.id}` },

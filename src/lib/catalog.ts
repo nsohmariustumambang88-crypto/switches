@@ -1058,6 +1058,7 @@ export type Order = {
   total?: number;
   billing?: { name: string; line1: string; city: string; state: string; zip: string; phone?: string };
   payment?: "card" | "ach";
+  delivery?: "standard" | "express";
 };
 
 export type Dealer = {

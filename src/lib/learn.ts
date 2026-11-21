@@ -497,14 +497,33 @@ Shop the [P365](/product/sig-p365), [P365-XL](/product/sig-p365-xl) and [P365-XM
       "Buying a handgun online? It ships to a licensed dealer (FFL), not your door. Here's each step: choosing a dealer, Form 4473, the background check and fees.",
     author: "editorial-team",
     sources: [S.ecfrAge, S.nics, S.atf],
-    changelog: first,
+    changelog: [{ date: "2026-11-21", note: "Added what ships to your door and the two delivery options." }, ...first],
     relatedProducts: ["glock-19-gen6", "sig-p365", "glock-43x-mos"],
     status: "published",
     publishedAt: D,
-    updatedAt: D,
+    updatedAt: "2026-11-21",
     body: `## The short version
 
 You buy the handgun online. We ship it to a **federally licensed firearms dealer (FFL)** near you. You collect it there after completing **ATF Form 4473** and passing a **background check**. Handguns never ship to your home.
+
+## What ships to your door, and what goes to an FFL
+
+| Item | Where it ships |
+|---|---|
+| Handguns and other firearms | The FFL dealer you choose at checkout. Federal law requires it. |
+| Ammunition | Your address, with an adult signature on delivery |
+| Triggers, parts and accessories | Your address |
+
+Only firearms go through a dealer. Everything else comes straight to you, where your state allows it.
+
+## Delivery options
+
+Every order ships in a **plain box with no store branding**, whichever speed you pick.
+
+- **Standard (discreet):** arrives within 3 days. It's free over the free-shipping threshold shown at checkout.
+- **Fast-track:** express delivery for a flat fee.
+
+Firearms ship to your dealer at either speed. We ship within the United States only. See [shipping and delivery](/shipping) for the current prices.
 
 ## Step by step
 

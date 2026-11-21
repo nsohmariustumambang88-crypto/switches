@@ -10,6 +10,7 @@ import type { Order, OrderStatus } from "@/lib/catalog";
 import { adminRequest, useAdmin } from "@/components/admin/use-admin";
 import { AdminTitle, Field, Loading, Notice, Section, Shot, TextInput } from "@/components/admin/admin-ui";
 import { Button } from "@/components/ui/button";
+import { deliveryName } from "@/lib/delivery";
 import { StatusChip, orderHasFirearm, statusLabel } from "@/app/(store)/orders/order-shared";
 
 const FLOW: OrderStatus[] = ["placed", "shipped", "at-ffl", "complete"];
@@ -62,7 +63,7 @@ export function OrderDetail({ id }: { id: string }) {
         meta={
           <span className="flex flex-wrap items-center gap-3">
             <StatusChip status={o.status} ffl={ffl} />
-            {formatDayTime(o.date)} · {o.email} · {o.payment === "ach" ? "ACH" : "Card"}
+            {formatDayTime(o.date)} · {o.email} · {o.payment === "ach" ? "ACH" : "Card"} · {deliveryName(o.delivery)}
           </span>
         }
         actions={

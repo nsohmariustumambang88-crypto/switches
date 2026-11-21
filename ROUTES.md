@@ -26,6 +26,7 @@ Images are served from Cloudinary (the account set in `.env.local`, folder `stor
 | `/orders/[id]` | `orders/[id]/track-view.tsx` | — | `GET /api/orders/:id` (signed in); "Buy again" may call `GET /api/products?slugs=` |
 | `/favorites` | `favorites/favorites-view.tsx` | — | `GET /api/products?slugs=` for unseen favorites |
 | `/profile` | `profile/profile-view.tsx` | — | `POST /api/auth/sign-out`; links to `/admin` for admins |
+| `/shipping` | `shipping/page.tsx` + `components/notify-signup.tsx` | `getSettings` | `POST /api/subscribe` |
 | `/learn` | `learn/page.tsx` | `getActivePillars`, `getArticles` | — |
 | `/learn/[pillar]` (`buying-online`, `handguns`, `ammo`, `triggers`, `reference`) | `learn/[pillar]/page.tsx` | `getPillar`, `getArticles`, `getCategory` | — |
 | `/learn/[pillar]/[slug]` | `learn/[pillar]/[slug]/page.tsx` (Markdown via `lib/markdown.ts`) | `getArticle`, `getAuthor`, `getRelatedArticles`, `getProduct` | — |
@@ -73,7 +74,8 @@ The proxy (`src/proxy.ts`, matching `/admin/*` only, with no network calls) redi
 | GET | `/api/products/:slug` | — | — | `{ product, related[] }` · 404 |
 | GET | `/api/ffl-dealers` | — | — | `{ sample, dealers[] }`. Static and CDN-cached; the browser sorts by ZIP with `sortDealersByZip` |
 | GET | `/api/settings` | — | — | store name, contacts, shipping rule, preview flag |
-| POST | `/api/orders` | optional session | `{ email, items[{slug,qty,rounds?}], billing{name,line1,city,state,zip}, fflDealerId?, payment:"card"\|"ach", attested:true }` | `201 { order }` · 400/409 with message · 503 demo |
+| POST | `/api/orders` | optional session | `{ email, items[{slug,qty,rounds?}], billing{name,line1,city,state,zip}, fflDealerId?, payment:"card"\|"ach", delivery:"standard"\|"express", attested:true }` | `201 { order }` · 400/409 with message · 503 demo |
+| POST | `/api/subscribe` | — | `{ email, country?, source?, website (honeypot) }` | `201 { ok }` · 400 · 503 demo |
 | GET | `/api/orders` | session | — | `{ orders[] }` (own) |
 | GET | `/api/orders/:id` | session (owner or admin) | — | `{ order }` · 404 |
 | GET | `/api/auth/me` | — | — | `{ configured, viewer \| null }` |
@@ -149,10 +151,13 @@ Catalog, dealer and settings writes call `revalidateTag(…, { expire: 0 })`, so
 | `orders`, `order_items`, `order_events` | orders, item snapshots, status timeline | own or admin read · writes via service role |
 | `wishlists` | saved products per user | own only |
 | `settings` | store, shipping and preview settings | public read · admin write |
+| `subscribers` (0003) | email list (international notify-me) | no public access · admin all (writes go through the service role) |
 | `authors` (0002) | guide writers and reviewers | public read · admin write |
 | `articles` (0002) | `/learn` guides: Markdown body, sources, changelog, related products, draft/published | published rows public · admin all |
 
 `0002_seo_learn.sql` also adds the `summary`, `meta_title`, `image_alt`, `mpn` and `gtin` columns to `products` and `meta_title`, `meta_description` and `intro` to `categories`. It replaces the products update trigger so that `updated_at`, the sitemap's lastmod, moves only on content edits, not on every stock decrement.
+
+`0003_delivery_subscribers.sql` adds `orders.delivery` (`standard` or `express`) and the `subscribers` table.
 
 Functions:
 

@@ -30,6 +30,7 @@ export const orderInput = z.object({
   }),
   fflDealerId: z.string().optional(),
   payment: z.enum(["card", "ach"]),
+  delivery: z.enum(["standard", "express"]).default("standard"),
   attested: z.literal(true),
 });
 export type OrderInput = z.infer<typeof orderInput>;
@@ -51,6 +52,7 @@ type OrderRow = {
   billing: Order["billing"];
   ffl_snapshot: { name: string; address: string } | null;
   payment_method: "card" | "ach";
+  delivery?: "standard" | "express" | null;
   carrier: string | null;
   tracking: string | null;
   created_at: string;
@@ -95,6 +97,7 @@ export function rowToOrder(r: OrderRow): Order {
     total: Number(r.total),
     billing: r.billing,
     payment: r.payment_method,
+    delivery: r.delivery ?? "standard",
   };
 }
 
@@ -135,7 +138,7 @@ export async function createOrder(input: OrderInput, viewer: Viewer | null): Pro
 
   const settings = await getSettings();
   const subtotal = Math.round(lines.reduce((n, l) => n + l.unit * l.qty, 0) * 100) / 100;
-  const shipping = shippingFor(subtotal, settings.shipping);
+  const shipping = shippingFor(subtotal, settings.shipping, input.delivery);
   const total = Math.round((subtotal + shipping) * 100) / 100;
 
   // Reserve stock first; roll back what was reserved if any line fails.
@@ -166,6 +169,7 @@ export async function createOrder(input: OrderInput, viewer: Viewer | null): Pro
       ffl_dealer_id: ffl?.id ?? null,
       ffl_snapshot: ffl ? { name: ffl.name, address: ffl.address } : null,
       payment_method: input.payment,
+      delivery: input.delivery,
       attested_at: new Date().toISOString(),
     });
     if (!insErr) break;

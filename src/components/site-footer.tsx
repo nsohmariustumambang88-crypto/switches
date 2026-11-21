@@ -22,6 +22,7 @@ export function SiteFooter() {
                 </Link>
               </li>
             ))}
+            <li><Link href="/shipping" className="hover:underline">Shipping &amp; delivery</Link></li>
           </ul>
         </nav>
         <nav aria-label="Guides" className="md:col-span-2">

@@ -8,6 +8,7 @@
  */
 import { site } from "@/config/site";
 import type { Category, Product } from "@/lib/catalog";
+import { shippingCost, type ShippingSettings } from "@/lib/delivery";
 
 const cloud = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
 const folder = process.env.NEXT_PUBLIC_CLOUDINARY_FOLDER || "storefront";
@@ -46,7 +47,8 @@ export function productTitle(p: Product) {
   const cal = p.caliber && !p.name.toLowerCase().includes(p.caliber.toLowerCase()) ? ` ${p.caliber}` : "";
   const word = TYPE_WORD[p.category];
   const t = `${p.name}${cal}${word && !p.name.toLowerCase().includes(word.toLowerCase()) ? ` ${word}` : ""}`;
-  return t.length > 60 ? p.name : t;
+  // Budget 50 characters: the layout appends " — <store name>" (about 10 more).
+  return t.length > 50 ? p.name : t;
 }
 
 export const clip = (s: string, n = 155) => {
@@ -106,11 +108,41 @@ export function breadcrumbLd(items: { name: string; path: string }[]): Json {
 
 const money = (n: number) => n.toFixed(2);
 
-export function productLd(p: Product, cat?: Category): Json {
+/**
+ * OfferShippingDetails for the two delivery options (US only). Firearms list
+ * the same rates: they ship to the buyer's FFL dealer rather than a home address.
+ */
+function shippingDetailsLd(price: number, s: ShippingSettings): Json[] {
+  const destination = { "@type": "DefinedRegion", addressCountry: "US" };
+  const time = (max: number) => ({
+    "@type": "ShippingDeliveryTime",
+    handlingTime: { "@type": "QuantitativeValue", minValue: 0, maxValue: 1, unitCode: "DAY" },
+    transitTime: { "@type": "QuantitativeValue", minValue: 1, maxValue: Math.max(1, max - 1), unitCode: "DAY" },
+  });
+  return [
+    {
+      "@type": "OfferShippingDetails",
+      name: "Standard — discreet",
+      shippingDestination: destination,
+      shippingRate: { "@type": "MonetaryAmount", value: money(shippingCost(price, s, "standard")), currency: "USD" },
+      deliveryTime: time(s.standardDays),
+    },
+    {
+      "@type": "OfferShippingDetails",
+      name: "Fast-track",
+      shippingDestination: destination,
+      shippingRate: { "@type": "MonetaryAmount", value: money(shippingCost(price, s, "express")), currency: "USD" },
+      deliveryTime: time(s.expressDays),
+    },
+  ];
+}
+
+export function productLd(p: Product, cat?: Category, shipping?: ShippingSettings): Json {
   const url = absolute(`/product/${p.slug}`);
   const inStock = p.stock === undefined || p.stock > 0;
   const availability = `https://schema.org/${inStock ? "InStock" : "OutOfStock"}`;
   const seller = { "@id": ORG_ID };
+  const shippingDetails = shipping ? { shippingDetails: shippingDetailsLd(p.price, shipping) } : {};
   const offers: Json =
     p.packs && p.packs.length > 1
       ? {
@@ -122,6 +154,7 @@ export function productLd(p: Product, cat?: Category): Json {
           availability,
           url,
           seller,
+          ...shippingDetails,
         }
       : {
           "@type": "Offer",
@@ -131,6 +164,7 @@ export function productLd(p: Product, cat?: Category): Json {
           itemCondition: "https://schema.org/NewCondition",
           url,
           seller,
+          ...shippingDetails,
         };
   return {
     "@type": "Product",

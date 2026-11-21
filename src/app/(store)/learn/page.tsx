@@ -10,7 +10,7 @@ import { absolute, breadcrumbLd } from "@/lib/seo";
 import { articlePath } from "@/lib/data/articles";
 
 export const metadata: Metadata = {
-  title: "Gun Buying Guides: Glock, SIG P365, 9mm Ammo & FRTs",
+  title: "Gun Buying Guides: Glock, SIG P365, 9mm & FRTs",
   description:
     "Practical buying guides from a licensed dealer: Glock Gen6 vs V, SIG P365 sizes, HST vs Gold Dot 9mm, forced reset triggers, FFL transfers and a glossary.",
   alternates: { canonical: "/learn" },
