@@ -30,11 +30,9 @@ export const metadata: Metadata = {
     images: [{ url: imageUrl("catalog/handguns/glock-19-gen6.png", { og: true }), width: 1200, height: 630, alt: "Glock 19 Gen6 9mm pistol" }],
   },
   twitter: { card: "summary_large_image" },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 },
-  },
+  robots: site.indexable
+    ? { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 } }
+    : { index: false, follow: false },
   formatDetection: { telephone: false, address: false, email: false },
 };
 

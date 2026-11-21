@@ -15,6 +15,12 @@ export const site = {
    * Set NEXT_PUBLIC_SITE_URL to the live domain (e.g. https://www.example.com).
    */
   url: (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000").replace(/\/+$/, ""),
+  /**
+   * Only the production deployment may be indexed. Vercel preview builds
+   * (VERCEL_ENV=preview) get robots "disallow all" and noindex, so test URLs
+   * never compete with the real domain. Local builds count as production.
+   */
+  indexable: !process.env.VERCEL_ENV || process.env.VERCEL_ENV === "production",
   supportEmail: "support@example.com", // PLACEHOLDER
   supportPhone: "(000) 000-0000", // PLACEHOLDER
   minimumAge: 21,
