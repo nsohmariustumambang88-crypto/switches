@@ -26,6 +26,8 @@
 # env files — real values live only in .env.local; .env.example is the template
 .env*
 !.env.example
+# exported env files (e.g. switch.env for Vercel's "Import .env") hold real secrets too
+*.env
 
 # secrets
 *.pem
