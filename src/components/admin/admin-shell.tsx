@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   ArrowUpRight,
@@ -67,27 +68,56 @@ export function AdminNavFallback({ compact }: { compact?: boolean }) {
   return <NavList pathname={null} compact={compact} />;
 }
 
-/** Access states rendered by the shell before showing admin pages. */
-export function AdminGateView({ children }: { children: React.ReactNode }) {
-  const viewer = useStore((s) => s.viewer);
-  const backend = useStore((s) => s.backend);
-  const checked = useStore((s) => s.viewerChecked);
+type AdminSession = { email: string; via: "owner" | "supabase"; demo: boolean };
+type SessionState = { status: "checking" } | { status: "ok"; session: AdminSession } | { status: "signin" } | { status: "denied"; message: string };
 
-  // Render the page while the session check runs (keeps the segment renderable for
-  // prerender/instant-navigation validation). Data stays protected: every
-  // /api/admin/* call re-checks the admin role on the server.
-  if (checked && backend && !viewer) {
+// One GET /api/admin/session per page load, shared by the gate and the account menu.
+let sessionRequest: Promise<SessionState> | null = null;
+function loadSession(): Promise<SessionState> {
+  sessionRequest ??= fetch("/api/admin/session", { cache: "no-store" })
+    .then(async (r): Promise<SessionState> => {
+      const body = await r.json().catch(() => ({}));
+      if (r.ok) return { status: "ok", session: body as AdminSession };
+      if (r.status === 401) return { status: "signin" };
+      return { status: "denied", message: body.error ?? "This account can't use the back office." };
+    })
+    .catch((): SessionState => ({ status: "signin" }));
+  return sessionRequest;
+}
+const forgetSession = () => {
+  sessionRequest = null;
+};
+
+function useAdminSession() {
+  const [state, setState] = useState<SessionState>({ status: "checking" });
+  useEffect(() => {
+    let live = true;
+    loadSession().then((s) => live && setState(s));
+    return () => {
+      live = false;
+    };
+  }, []);
+  return state;
+}
+
+/**
+ * Access states rendered by the shell. The proxy already turns away visitors
+ * without a session and every /api/admin/* handler re-checks; this handles an
+ * expired session (back to sign-in) and signed-in customers who aren't admins.
+ * Pages render while the check runs, so the segment stays prerenderable.
+ */
+export function AdminGateView({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+  const state = useAdminSession();
+  useEffect(() => {
+    // Read the URL in the browser only: the shell must stay prerenderable.
+    if (state.status === "signin") router.replace(`/admin-login?next=${encodeURIComponent(window.location.pathname)}`);
+  }, [state.status, router]);
+
+  if (state.status === "signin") return <Gate title="Sign in required" body="Your session ended. Taking you to sign-in…">{null}</Gate>;
+  if (state.status === "denied") {
     return (
-      <Gate title="Sign in required" body="Sign in with an admin account to manage the store.">
-        <Link href="/welcome?next=/admin" className={buttonVariants({ size: "lg" })}>
-          Sign in
-        </Link>
-      </Gate>
-    );
-  }
-  if (checked && backend && viewer?.role !== "admin") {
-    return (
-      <Gate title="Not an admin" body={`${viewer?.email} doesn’t have admin access. Ask an admin to promote this account, or run npm run db:make-admin.`}>
+      <Gate title="Not an admin" body={state.message}>
         <Link href="/" className={buttonVariants({ variant: "outline", size: "lg" })}>
           Back to the store
         </Link>
@@ -126,20 +156,24 @@ export function DemoStrip() {
 
 export function AdminAccount() {
   const router = useRouter();
-  const viewer = useStore((s) => s.viewer);
-  if (!viewer) return null;
+  const state = useAdminSession();
+  if (state.status !== "ok") return null;
   return (
     <div className="space-y-2 border-t border-white/10 pt-4">
-      <p className="truncate text-xs text-echo">{viewer.email}</p>
+      <p className="truncate text-xs text-echo">{state.session.email}</p>
       <Button
         variant="ghost"
         size="sm"
         className="w-full justify-start text-echo hover:bg-white/8 hover:text-primary-foreground"
         onClick={async () => {
-          await fetch("/api/auth/sign-out", { method: "POST" });
+          await Promise.allSettled([
+            fetch("/api/auth/owner", { method: "DELETE" }),
+            fetch("/api/auth/sign-out", { method: "POST" }),
+          ]);
+          forgetSession();
           clearViewerCache();
-          useStore.getState().setViewer(null, true);
-          router.push("/");
+          useStore.getState().setViewer(null, useStore.getState().backend);
+          router.replace("/admin-login");
         }}
       >
         <LogOut />

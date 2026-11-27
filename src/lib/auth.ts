@@ -1,5 +1,7 @@
+import { cookies } from "next/headers";
 import { hasSupabase, serviceKey } from "@/lib/supabase/config";
 import { serviceClient, sessionClient } from "@/lib/supabase/clients";
+import { OWNER_COOKIE, readOwnerSession } from "@/lib/owner-auth";
 
 export type Viewer = {
   id: string;
@@ -43,18 +45,28 @@ export async function syncAdminRole(userId: string, email: string) {
 }
 
 export type AdminGate =
-  | { ok: true; demo: false; viewer: Viewer }
-  | { ok: true; demo: true; viewer: null }
+  | { ok: true; demo: false; viewer: Viewer; via: "owner" | "supabase" }
+  | { ok: true; demo: true; viewer: Viewer; via: "owner" }
   | { ok: false; status: 401 | 403; message: string };
 
+/** The owner, when the request carries a valid owner session cookie (see lib/owner-auth.ts). */
+export async function getOwner(): Promise<Viewer | null> {
+  const session = await readOwnerSession((await cookies()).get(OWNER_COOKIE)?.value);
+  return session ? { id: "owner", email: session.email, fullName: "Store owner", role: "admin" } : null;
+}
+
 /**
- * Admin access check for /api/admin/*.
- * Without Supabase the admin runs in read-only demo mode on the built-in data.
+ * Admin access check for every /api/admin/* handler (the proxy is the first lock;
+ * this is the second). Access needs a valid owner session, or — once Supabase is
+ * connected — a Supabase account with the admin role. Without Supabase, a signed-in
+ * owner sees the read-only demo data; nobody else gets in.
  */
 export async function adminGate(): Promise<AdminGate> {
-  if (!hasSupabase) return { ok: true, demo: true, viewer: null };
+  const owner = await getOwner();
+  if (owner) return hasSupabase ? { ok: true, demo: false, viewer: owner, via: "owner" } : { ok: true, demo: true, viewer: owner, via: "owner" };
+  if (!hasSupabase) return { ok: false, status: 401, message: "Sign in to the back office." };
   const viewer = await getViewer();
   if (!viewer) return { ok: false, status: 401, message: "Sign in with an admin account." };
   if (viewer.role !== "admin") return { ok: false, status: 403, message: "This account is not an admin." };
-  return { ok: true, demo: false, viewer };
+  return { ok: true, demo: false, viewer, via: "supabase" };
 }

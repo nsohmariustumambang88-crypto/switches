@@ -44,10 +44,11 @@ Every page runs `ViewerSync` (`components/boot.tsx`):
 
 ## 2. Admin backend — `src/app/admin/`
 
-The proxy (`src/proxy.ts`, matching `/admin/*` only, with no network calls) redirects visitors without a session cookie to `/welcome?next=/admin`. The shell (`components/admin/admin-shell.tsx`) shows a 403 page to non-admins. Every `/api/admin/*` handler re-checks the role server-side.
+The proxy (`src/proxy.ts`) matches `/admin/*` and `/api/admin/*` and makes no network calls. A request passes with a valid owner session (signed cookie from `/admin-login`) or, once Supabase is connected, a Supabase session cookie. Otherwise pages redirect to `/admin-login?next=…` and the API returns 401. Every `/api/admin/*` handler re-checks on the server with `adminGate`, which accepts the owner or a Supabase account with the admin role. The shell (`components/admin/admin-shell.tsx`) reads `GET /api/admin/session`: an expired session goes back to sign-in, and a non-admin sees a 403 page.
 
 | Route | File | API |
 | --- | --- | --- |
+| `/admin-login` | `admin-login/page.tsx` → `owner-sign-in.tsx` | `POST /api/auth/owner` |
 | `/admin` | `page.tsx` | `GET /api/admin/stats` |
 | `/admin/orders` | `orders/orders-admin.tsx` | `GET /api/admin/orders?status=&q=` |
 | `/admin/orders/[id]` | `orders/[id]/order-detail.tsx` | `GET`, `PATCH /api/admin/orders/:id` |
@@ -82,6 +83,7 @@ The proxy (`src/proxy.ts`, matching `/admin/*` only, with no network calls) redi
 | POST | `/api/auth/sign-in` | — | `{ email, password }` | `{ viewer }` · 401 |
 | POST | `/api/auth/sign-up` | — | `{ fullName, email, password, ageConfirmed:true }` | `201 { needsConfirmation, viewer }` |
 | POST | `/api/auth/sign-out` | — | — | `{ ok }` |
+| POST / DELETE | `/api/auth/owner` | — | POST: `{ email, password }` | POST: `{ ok }` + owner session cookie · 401 · 429 after 5 failures · DELETE: signs out |
 | GET | `/api/wishlist` | session | — | `{ slugs[] }` |
 | POST / DELETE | `/api/wishlist` | session | `{ slug }` | `{ ok }` |
 
@@ -100,6 +102,7 @@ Admin routes need an admin session. In demo mode, GET returns sample data and wr
 
 | Method | Path | Input | Returns |
 | --- | --- | --- | --- |
+| GET | `/api/admin/session` | — | `{ email, via: "owner"|"supabase", demo }` |
 | GET | `/api/admin/stats` | — | `{ stats{ordersToday, revenue30d, byStatus, products, lowStock, customers}, recent[] }` |
 | GET / POST | `/api/admin/products` | POST: `productInput` (see `lib/data/admin.ts`) | `{ products[] }` / `201 { product }` |
 | GET / PATCH / DELETE | `/api/admin/products/:id` | PATCH: `productInput` (now including `summary`, `metaTitle`, `imageAlt`, `mpn`, `gtin`) | `{ product }` / `{ ok }` |

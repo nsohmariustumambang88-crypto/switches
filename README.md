@@ -30,7 +30,7 @@ Without Supabase keys the app runs in **demo mode**:
 
 - The storefront serves the built-in catalog.
 - Checkout saves orders in the browser only.
-- `/admin` is read-only and shows sample data.
+- `/admin` shows sample data, read-only, and only after the owner signs in.
 
 ## Free-tier friendly: nothing keeps running
 
@@ -57,6 +57,16 @@ Hosting notes:
 
 - Supabase's free plan pauses a project after a week with no activity. Wake it from the dashboard; nothing here pings it.
 - Vercel's Hobby (free) plan is for non-commercial use. A client's live store needs the Pro plan or another host.
+
+## Back office access
+
+`/admin` and every `/api/admin/*` endpoint are locked:
+
+- **Three layers.** `src/proxy.ts` turns away any request without a session: pages redirect to `/admin-login`, and API calls get a 401. Every admin API handler checks again on the server (`adminGate` in `src/lib/auth.ts`). The admin shell sends an expired session back to sign-in.
+- **Owner login.** Sign in at `/admin-login` with `ADMIN_LOGIN_EMAIL` and the password whose hash is in `ADMIN_PASSWORD_HASH` (PBKDF2-SHA256, 310,000 iterations). The session is a signed, HttpOnly, Secure, SameSite=Strict cookie that lasts 12 hours. Five wrong attempts from one IP block it for 15 minutes.
+- **Changing the password.** Run `"new password" | npm run -s admin:hash` in PowerShell, then put the output in `.env.local` and in Vercel as `ADMIN_PASSWORD_HASH`. Changing `ADMIN_SESSION_SECRET` signs everyone out.
+- **Once Supabase is connected,** accounts listed in `ADMIN_EMAILS` that sign in through `/welcome` also get in. Signed-in customers who aren't admins see "Not an admin".
+- **Security headers** on every page: no framing, nosniff, strict referrer policy, HSTS. Admin and auth responses are also `no-store` and `noindex`.
 
 ## Delivery
 
@@ -118,7 +128,7 @@ The account is whichever one `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` in `.env.local`
 - `src/lib/data/`: server data layer for catalog, dealers, settings, orders and admin.
 - `src/lib/catalog.ts`: built-in catalog and types. It's the seed source and the demo-mode fallback.
 - `src/lib/store.ts`: client cart, wishlist, local orders and product snapshots.
-- `src/proxy.ts`: refreshes the Supabase session and keeps signed-out visitors out of `/admin`.
+- `src/proxy.ts`: locks `/admin` and `/api/admin` (owner session or Supabase session required); see Back office access.
 - `src/app/globals.css`: the poster design system's tokens. The full design record (DESIGN.md) is kept with the project files outside this repo.
 
 ## Placeholders to replace before launch
